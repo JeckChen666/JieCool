@@ -30,6 +30,11 @@
 - 日志与审计：
   - 访问记录当前落盘到 data/visit.log（JSON Lines 格式），后续可升级为数据库持久化（含索引与归档策略）。
 
+命名约定（日志与审计模块）
+- API 路径统一使用前缀 `/logs`（例如：`POST /logs/visit`）。
+- 数据库表统一使用前缀 `logs_`（例如：`logs_visit_access`）。
+- 相关文档需同步更新命名与路径，避免前后端与数据库之间的歧义。
+
 数据库设计注意事项（规划）
 - 表结构遵循规范：主键选择、必要索引、避免过宽行与过多 join。
 - 审计字段：created_at、updated_at、operator、ip 等；归档与清理策略预先规划。
@@ -57,7 +62,7 @@
 - 响应结构：返回扁平数据（time、ip、userAgent、method、path、headers），不包含 status 字段。
 - 统一响应：由中间件处理，无需在 Res 中配置 mime。
 - IP 获取：优先 r.GetClientIp()，必要时结合代理头；谨慎信任头部，识别伪造风险。
-- 数据持久化：当前写入 data/visit.log，后续可迁移至数据库并添加索引与归档。
+- 数据持久化：优先写入 PostgreSQL 表 `logs_visit_access`，不可用时降级写入 `server/data/visit.log`；建议为常用查询字段建立索引（time、ip、path）。
 
 维护说明
 - 当新增模块或规范变更时，请同步更新本文件，并在 docs/execute 中记录具体实施步骤与变更原因。

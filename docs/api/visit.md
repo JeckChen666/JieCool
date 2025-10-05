@@ -8,7 +8,9 @@
 - 摘要：Record a visit of home page
 
 请求：
-- Body：无（由服务端从请求上下文自动获取）
+- Body：无（由服务端从请求上下文自动获取）；前端会在首页加载时自动上报最小负载：
+  - 示例：`{ "path": "/", "ts": 1710000000000 }`
+  - 说明：服务端不依赖该 Body 获取核心信息，主要从请求上下文读取 IP/Headers/Method/Path。
 
 响应：
 ```json
@@ -31,6 +33,26 @@
 持久化：
 - 优先写入 PostgreSQL 表 `logs_visit_access`；数据库不可用时降级将 JSON 行写入 `server/data/visit.log`
 
+前端联通：
+- 组件：`front-web/src/components/VisitTracker.tsx`
+- 行为：页面加载后自动 `POST ${NEXT_PUBLIC_API_BASE}/logs/visit`，默认 `NEXT_PUBLIC_API_BASE=http://localhost:8000`
+- 环境变量：在 `front-web/.env.local` 配置 `NEXT_PUBLIC_API_BASE`
+
+跨域（CORS）：
+- 如前后端不同源，后端需允许来自前端地址的跨域：
+  - 允许 Origin（如 `http://localhost:3000`）
+  - 允许方法：`POST`
+  - 允许头：`Content-Type`
+  - 可选：返回 `Access-Control-Allow-Credentials: false`（当前前端不携带凭证）
+
+示例请求：
+```bash
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"path":"/","ts":1710000000000}' \
+  http://localhost:8000/logs/visit
+```
+
 相关代码位置：
 - API 定义：`server/api/visit/v1/visit.go`
 - 控制器：`server/internal/controller/visit/visit_v1_create.go`
@@ -41,3 +63,6 @@
 - IP 获取使用框架提供的远端 IP 方法，避免被 Header 伪造；当无法获取时字段为空。
 - Headers 为扁平化后的首个值映射，若需完整保留可改为数组或 JSON 原样存储。
 - 如部署在反向代理后，务必在网关层规范并清洗相关真实 IP 头（如 X-Forwarded-For）。
+
+变更记录：
+- 2025-10-05：API 路径前缀统一为 `/logs`；新增前端自动上报机制与环境变量说明；完善 CORS 要求与示例请求。

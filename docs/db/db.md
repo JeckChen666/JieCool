@@ -54,14 +54,14 @@ db/
 - 迁移文件采用 4 位编号 + 描述（例如 `0001_init_users.sql`），避免冲突。
 - 在迁移中明确索引、外键与约束的设计意图，并添加必要注释。
 
-## 访问记录表（visit_access）
+## 访问记录表（logs_visit_access）
 
-用于持久化接口访问记录（由后端 Visit 接口写入）。
+用于持久化接口访问记录（由后端 Visit 接口写入，API 路径前缀为 `/logs`）。
 
 DDL 示例：
 
 ```sql
-CREATE TABLE IF NOT EXISTS visit_access (
+CREATE TABLE IF NOT EXISTS logs_visit_access (
     id BIGSERIAL PRIMARY KEY,
     time TIMESTAMPTZ NOT NULL,
     ip TEXT,
@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS visit_access (
 - created_at：记录创建时间
 
 后端写入策略：
-- 优先写入 PostgreSQL（g.DB().Model("visit_access").Insert）。
+- 优先写入 PostgreSQL（g.DB().Model("logs_visit_access").Insert）。
 - 数据库不可用时降级写入 data/visit.log（JSON Lines）。
 
 MCP 执行：

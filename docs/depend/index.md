@@ -8,6 +8,7 @@
   - 框架与运行时：Next.js 15.5.4、React 19.1.0、React DOM 19.1.0
   - 组件库：@arco-design/web-react ^2.66.5（配套全局样式）
   - 语言与构建：TypeScript ^5、ESLint ^9、Tailwind CSS ^4（模板默认引入）
+  - 请求管理：alova v3（通过子路径导入：`alova/react`、`alova/fetch`、`alova/client`）
 - 后端工程：server
   - 框架：GoFrame v2（当前 go.mod 记录为 v2.7.1，CLI 运行为 v2.9.x）
   - 语言与工具：Go 1.24.4（本机环境），gf CLI v2（用于脚手架与 dev-run）
@@ -46,6 +47,9 @@
 - ConfigProvider：通过客户端组件 `src/components/ClientProvider.tsx` 注入，避免 Server Component 上下文错误。
 - 包管理器：使用 npm；保留 `package-lock.json` 以锁定依赖版本，避免不可预期的升级。
 - Node 版本：建议使用 Node 18+ 或 20+（与 Next.js 官方兼容矩阵保持一致）。
+ - 请求库：alova v3 仅需安装主包 `alova`，按需从子路径引入：
+   - 配置示例：`src/lib/alova.ts` 使用 `alova/react` 作为 statesHook、`alova/fetch` 作为请求适配器；`baseURL` 读取 `NEXT_PUBLIC_API_BASE`。
+   - Hook 使用：从 `alova/client` 引入 `useRequest`/`useFetcher`，仅在客户端组件中调用。
 
 常用命令：
 - 开发：`npm run dev`

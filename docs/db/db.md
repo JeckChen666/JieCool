@@ -53,3 +53,38 @@ db/
 命名规范：
 - 迁移文件采用 4 位编号 + 描述（例如 `0001_init_users.sql`），避免冲突。
 - 在迁移中明确索引、外键与约束的设计意图，并添加必要注释。
+
+## 访问记录表（visit_access）
+
+用于持久化接口访问记录（由后端 Visit 接口写入）。
+
+DDL 示例：
+
+```sql
+CREATE TABLE IF NOT EXISTS visit_access (
+    id BIGSERIAL PRIMARY KEY,
+    time TIMESTAMPTZ NOT NULL,
+    ip TEXT,
+    user_agent TEXT,
+    method TEXT,
+    path TEXT,
+    headers JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+字段说明：
+- time：访问时间（timestamptz）
+- ip：客户端 IP（来源于 r.GetClientIp 或降级）
+- user_agent：请求 UA
+- method：HTTP 方法
+- path：请求路径
+- headers：请求头的首值扁平化集合（jsonb）
+- created_at：记录创建时间
+
+后端写入策略：
+- 优先写入 PostgreSQL（g.DB().Model("visit_access").Insert）。
+- 数据库不可用时降级写入 data/visit.log（JSON Lines）。
+
+MCP 执行：
+- 可通过 MCP PostgreSQL 执行 DDL 与数据查询，便于在开发环境快速初始化。

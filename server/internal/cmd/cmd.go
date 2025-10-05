@@ -8,6 +8,7 @@ import (
 	"github.com/gogf/gf/v2/os/gcmd"
 
 	"server/internal/controller/hello"
+	"server/internal/controller/visit"
 )
 
 var (
@@ -21,8 +22,10 @@ var (
 				group.Middleware(ghttp.MiddlewareHandlerResponse)
 				group.Bind(
 					hello.NewV1(),
+					visit.NewV1(),
 				)
 			})
+			s.SetPort(8080)
 			s.Run()
 			return nil
 		},

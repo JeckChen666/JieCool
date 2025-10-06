@@ -18,3 +18,10 @@
 - 不强制记录精确时间戳，但需按步骤清晰描述与可复现。
 - 禁止泄露敏感信息（密码、密钥）；涉及连接参数时用占位符替换。
 - 与 `docs/project.md`、`docs/depend/index.md` 保持一致性，变更后同步更新文档。
+
+## 当前执行文档列表
+
+- `2025-10-05-exec.md` - 项目初始化与基础搭建
+- `2025-10-06-exec.md` - 后续功能开发与调试
+- `daily-sentence-implementation.md` - 每日一句功能实现详细文档
+- `2025-01-27-navbar-color-optimization.md` - 导航栏颜色优化执行文档

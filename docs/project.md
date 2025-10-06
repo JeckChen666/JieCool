@@ -228,7 +228,36 @@ deploy/
 - 已创建前端模板：使用 create-next-app 在 front-web/ 生成 Next.js App Router + TypeScript 工程；已安装并接入 Arco Design，全局样式与 ConfigProvider 通过客户端组件注入，开发服务器运行于 http://localhost:3000/。
 - 文档更新：docs/server/goframe.md 增补脚手架与运行说明；docs/db/db.md 增补 PostgreSQL 18 连接配置与迁移/种子数据规划。
 
+十三、功能模块进展
+
+### 每日一句功能（已完成）
+- **功能描述**: 展示来自金山词霸的每日英语句子，包含英文原文、中文翻译、背景图片和音频播放
+- **技术实现**:
+  - 后端：GoFrame 控制器 + 服务层，调用金山词霸公开API
+  - 前端：React 组件 + CSS Modules，支持响应式设计
+  - 特色功能：图片主色调提取、音频播放、毛玻璃效果、导航栏颜色自适应
+- **API接口**: `GET /daily/sentence` - 获取每日一句数据
+- **最新优化**: 
+  - 导航栏颜色优化（2025-01-27）：解决图片加载前的蓝色闪烁问题，改为白色默认，只在图片加载完成后才更新为提取的主色调
+  - 添加图片加载状态跟踪，完善错误处理机制
+- **文件位置**:
+  - 后端：`server/internal/controller/daily/`、`server/internal/service/daily.go`
+  - 前端：`front-web/src/components/DailySentence.tsx`、`front-web/src/contexts/ColorContext.tsx`
+  - 文档：`docs/api/daily.md`、`docs/execute/daily-sentence-implementation.md`、`docs/execute/2025-01-27-navbar-color-optimization.md`
+
+### 访问统计功能（已完成）
+- **功能描述**: 记录用户访问信息，支持PostgreSQL和文件存储
+- **API接口**: `POST /logs/visit` - 记录访问日志
+- **文件位置**:
+  - 后端：`server/internal/controller/visit/`、`server/internal/service/visit.go`
+  - 前端：`front-web/src/components/VisitTracker.tsx`
+
+### CORS配置（已完成）
+- **配置说明**: 后端已添加CORS中间件，支持前端跨域请求
+- **实现位置**: `server/internal/cmd/cmd.go`
+
 后续 TODO（文档与代码协同）
 - 在 docs/api/ 中补充接口契约草稿（OpenAPI），与后端 internal/api/openapi.yaml 对齐。
 - 在 docs/execute/ 增加本地开发一键启动说明（Docker Compose 与脚本），以及联调步骤。
 - 在 server/ 配置 PostgreSQL 连接与 dao 层示例；在 front-web/ 增加调用后端 API 的示例页面（如 /profile）。
+- 考虑添加更多个人网站功能：博客系统、项目展示、联系表单等。

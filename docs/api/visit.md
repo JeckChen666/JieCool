@@ -35,7 +35,7 @@
 
 前端联通：
 - 组件：`front-web/src/components/VisitTracker.tsx`
-- 行为：页面加载后自动 `POST ${NEXT_PUBLIC_API_BASE}/logs/visit`，默认 `NEXT_PUBLIC_API_BASE=http://localhost:8000`
+- 行为：页面加载后自动 `POST ${NEXT_PUBLIC_API_BASE}/logs/visit`，默认 `NEXT_PUBLIC_API_BASE=http://localhost:8080`（与后端 `server/internal/cmd/cmd.go` 的 `s.SetPort(8080)` 保持一致）
 - 环境变量：在 `front-web/.env.local` 配置 `NEXT_PUBLIC_API_BASE`
 
 跨域（CORS）：
@@ -50,7 +50,7 @@
 curl -X POST \
   -H "Content-Type: application/json" \
   -d '{"path":"/","ts":1710000000000}' \
-  http://localhost:8000/logs/visit
+  http://localhost:8080/logs/visit
 ```
 
 相关代码位置：
@@ -66,3 +66,4 @@ curl -X POST \
 
 变更记录：
 - 2025-10-05：API 路径前缀统一为 `/logs`；新增前端自动上报机制与环境变量说明；完善 CORS 要求与示例请求。
+- 2025-10-06：默认 API 基地址从 8000 更正为 8080，并明确与后端端口配置一致；修正示例请求端口。

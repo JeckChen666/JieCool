@@ -1,0 +1,64 @@
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--navbar-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 16px;
+  background: color-mix(in oklab, var(--background) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid color-mix(in oklab, var(--foreground) 12%, transparent);
+  z-index: 50;
+}
+
+.left,
+.right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.siteName {
+  font-size: 16px;
+}
+
+.title {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.select,
+.button {
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklab, var(--foreground) 12%, transparent);
+  background: color-mix(in oklab, var(--background) 96%, transparent);
+  color: var(--foreground);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 640px) {
+  .siteName {
+    display: none;
+  }
+  .title {
+    font-size: 13px;
+  }
+}

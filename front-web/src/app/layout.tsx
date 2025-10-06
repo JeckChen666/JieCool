@@ -5,6 +5,8 @@ import "./globals.css";
 import "@arco-design/web-react/dist/css/arco.css";
 // 使用 Client 组件包裹全局 Arco ConfigProvider，避免在 Server Component 中使用 React Context
 import ClientProvider from "@/components/ClientProvider";
+import Navbar from "@/components/Navbar";
+import styles from "./layout.module.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,7 +36,8 @@ export default function RootLayout({
           保持布局（Server Component）兼容 metadata 等服务端特性。
         */}
         <ClientProvider>
-          {children}
+          <Navbar />
+          <main className={styles.main}>{children}</main>
         </ClientProvider>
       </body>
     </html>

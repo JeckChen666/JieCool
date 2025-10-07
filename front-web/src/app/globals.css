@@ -4,13 +4,13 @@
   --background: #ffffff;
   --foreground: #171717;
   --primary-color: #1890ff; /* 主题色 - 蓝色 */
+  --navbar-height: 64px; /* 顶部导航高度变量，支持响应式调整 */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -43,4 +43,11 @@ html, body {
 }
 body {
   margin: 0;
+}
+
+/* 响应式导航栏高度调整 */
+@media (max-width: 640px) {
+  :root {
+    --navbar-height: 56px;
+  }
 }

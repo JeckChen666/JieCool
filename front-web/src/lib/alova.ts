@@ -11,25 +11,41 @@ export const alova = createAlova({
   baseURL: process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8080",
   statesHook: ReactHook,
   requestAdapter: adapterFetch(),
-  // 预留拦截器（按需开启）
-  // beforeRequest(method) {
-  //   // 例如为请求头添加 token
-  //   const token = typeof window !== "undefined" ? localStorage.getItem("token") : undefined;
-  //   if (token) {
-  //     method.config.headers = { ...(method.config.headers || {}), Authorization: `Bearer ${token}` };
-  //   }
-  // },
-  // responded: {
-  //   // 示例：统一处理响应
-  //   // onSuccess: async (response) => {
-  //   //   // fetch 响应默认需手动解析
-  //   //   const data = await response.json();
-  //   //   return data;
-  //   // },
-  //   // onError: (error) => {
-  //   //   return Promise.reject(error);
-  //   // },
-  // },
+  // 请求拦截器
+  beforeRequest(method) {
+    // 例如为请求头添加 token
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : undefined;
+    if (token) {
+      method.config.headers = { ...(method.config.headers || {}), Authorization: `Bearer ${token}` };
+    }
+  },
+  // 响应拦截器
+  responded: {
+    // 成功响应处理
+    onSuccess: async (response) => {
+      // fetch 响应默认需手动解析
+      const result = await response.json();
+      
+      // 检查后端返回的标准格式
+      if (result && typeof result === 'object' && 'code' in result) {
+        if (result.code === 0) {
+          // 成功响应，返回 data 字段
+          return result.data || result;
+        } else {
+          // 业务错误，抛出异常
+          throw new Error(result.message || '请求失败');
+        }
+      }
+      
+      // 如果不是标准格式，直接返回
+      return result;
+    },
+    // 错误响应处理
+    onError: (error) => {
+      console.error('API请求错误:', error);
+      return Promise.reject(error);
+    },
+  },
 });
 
 // 便捷方法封装（可选）

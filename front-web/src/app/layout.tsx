@@ -1,20 +1,14 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 // 引入 Arco Design 全局样式，确保组件样式正确呈现
 import "@arco-design/web-react/dist/css/arco.css";
 // 使用 Client 组件包裹全局 Arco ConfigProvider，避免在 Server Component 中使用 React Context
 import ClientProvider from "@/components/ClientProvider";
 import Navbar from "@/components/Navbar";
-import styles from "./layout.module.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -30,14 +24,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${inter.variable} antialiased`}>
         {/*
           ClientProvider 为客户端组件，内部注入 Arco 的 ConfigProvider。
           保持布局（Server Component）兼容 metadata 等服务端特性。
         */}
         <ClientProvider>
           <Navbar />
-          <main className={styles.main}>{children}</main>
+          <main style={{ paddingTop: 'var(--navbar-height)' }}>{children}</main>
         </ClientProvider>
       </body>
     </html>

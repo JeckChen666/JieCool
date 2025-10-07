@@ -121,16 +121,38 @@ server/
 │   ├── controller/             # 控制器（入参校验、调用业务）
 │   │   ├── user.go
 │   │   ├── profile.go
+│   │   ├── file/               # 文件管理控制器
+│   │   │   ├── file_v1_upload_file.go      # 文件上传
+│   │   │   ├── file_v1_download_file.go    # 文件下载
+│   │   │   ├── file_v1_get_file_info.go    # 文件信息查询
+│   │   │   ├── file_v1_get_file_list.go    # 文件列表查询
+│   │   │   ├── file_v1_delete_file.go      # 文件删除
+│   │   │   ├── file_v1_get_file_stats.go   # 文件统计
+│   │   │   └── file_v1_get_thumbnail.go    # 缩略图获取
+│   │   ├── daily.go            # 每日一句
+│   │   ├── visit.go            # 访问日志
 │   │   └── health.go           # 健康检查
 │   ├── service/                # 业务逻辑（事务、聚合）
 │   │   ├── user.go
-│   │   └── profile.go
+│   │   ├── profile.go
+│   │   ├── file.go             # 文件管理服务（上传、下载、缩略图生成等）
+│   │   ├── daily.go            # 每日一句服务
+│   │   └── visit.go            # 访问统计服务
 │   ├── dao/                    # 数据访问（ORM/SQL）
 │   │   ├── user.go
-│   │   └── profile.go
+│   │   ├── profile.go
+│   │   ├── file.go             # 文件数据访问（CRUD操作）
+│   │   ├── daily.go            # 每日一句数据访问
+│   │   └── visit.go            # 访问日志数据访问
 │   ├── model/                  # 数据模型
 │   │   ├── entity/             # 数据库实体（gf gen 生成）
+│   │   │   ├── files.go        # 文件表实体
+│   │   │   ├── daily_sentences.go  # 每日一句表实体
+│   │   │   └── visit_logs.go   # 访问日志表实体
 │   │   └── do/                 # Data Object（查询/更新参数）
+│   │       ├── files.go        # 文件查询参数
+│   │       ├── daily_sentences.go  # 每日一句查询参数
+│   │       └── visit_logs.go   # 访问日志查询参数
 │   ├── pkg/
 │   │   ├── utils/
 │   │   └── validator/
@@ -239,11 +261,54 @@ deploy/
 - **API接口**: `GET /daily/sentence` - 获取每日一句数据
 - **最新优化**: 
   - 导航栏颜色优化（2025-01-27）：解决图片加载前的蓝色闪烁问题，改为白色默认，只在图片加载完成后才更新为提取的主色调
-  - 添加图片加载状态跟踪，完善错误处理机制
+  - 图片加载状态优化（2025-01-27）：添加图片加载状态跟踪，完善错误处理机制
+
+### 文件管理功能（已完成）
+- **功能描述**: 完整的文件上传、下载、管理系统，支持多种文件类型、缩略图生成、下载统计、MD5校验等功能
+- **技术实现**:
+  - 后端：GoFrame 分层架构，包含完整的 Controller/Service/DAO 层
+  - 文件存储：本地文件系统，按日期分层存储（uploads/{year}/{month}/{day}/）
+  - 缩略图：自动生成图片缩略图（200x200像素），支持 jpg/png/gif/webp 格式
+  - 去重机制：基于 SHA256 哈希值检测重复文件
+  - 下载优化：支持缓存控制（ETag、Last-Modified）、中文文件名处理
+  - MD5校验：文件上传时自动计算MD5值，支持文件完整性验证
+- **API接口**:
+  - `POST /file/upload` - 文件上传，支持缩略图自动生成
+  - `GET /file/download/{file_uuid}` - 文件下载，支持缓存和统计
+  - `GET /file/info/{file_uuid}` - 获取文件详细信息，包含完整MD5值
+  - `GET /file/list` - 文件列表查询，支持分页和筛选，包含MD5信息
+  - `DELETE /file/delete/{file_uuid}` - 软删除文件，支持撤销恢复
+  - `POST /file/restore/{file_uuid}` - 恢复已删除文件（撤销删除）
+  - `GET /file/stats` - 文件统计信息（总数、大小、分类等）
+  - `GET /file/thumbnail/{file_uuid}` - 获取缩略图
+  - `GET /file/md5/{file_uuid}` - 获取文件MD5哈希值，用于完整性验证
+- **数据库设计**:
+  - `files` 表：存储文件元数据、上传信息、下载统计等
+  - 支持字段：文件UUID、原始文件名、存储路径、文件大小、MIME类型、哈希值（SHA256）、MD5哈希值、缩略图信息、文件状态（active/deleted/archived）等
+  - 索引优化：针对UUID、哈希值、分类、扩展名、文件状态等建立索引
+  - 软删除支持：通过file_status字段管理文件状态，支持软删除和恢复操作
+- **特色功能**:
+  - 文件去重：相同文件只存储一份，节省存储空间
+  - 缩略图生成：图片文件自动生成缩略图，提升浏览体验
+  - 下载统计：记录下载次数和最后下载时间
+  - 中文支持：完美支持中文文件名下载
+  - 缓存优化：使用 ETag 和 Last-Modified 实现浏览器缓存
+  - MD5校验：文件上传时自动计算MD5值，前端支持文件完整性验证功能
+  - 软删除机制：删除文件时不物理删除，而是标记为已删除状态，确保数据安全
+  - 撤销删除：提供30秒撤销窗口，用户可在删除后快速恢复文件，提升用户体验
+- **安全特性**:
+  - 文件类型验证：基于 MIME 类型和扩展名双重验证
+  - 文件大小限制：默认限制 100MB，防止恶意上传
+  - 路径安全：使用 UUID 命名，避免路径遍历攻击
+- **最新修复**:
+  - MD5数据显示修复（2025-01-28）：修复前端文件详情页面MD5值显示问题，后端API返回结构增加FileMd5字段，确保前端能正确获取和显示完整的MD5值
+  - 文件删除功能修复（2025-01-28）：完全移除撤销删除功能，修复重复删除请求问题，实现简单可靠的二次确认机制
+  - 统计功能修复（2025-01-27）：修复文件类型统计显示 "NaN undefined" 问题，完善 ExtensionStats 结构，添加 size 字段支持
+  - 文件完整性修复（2025-01-27）：修复文件上传下载过程中的数据损坏问题，添加MD5完整性验证机制，确保文件传输的可靠性
 - **文件位置**:
-  - 后端：`server/internal/controller/daily/`、`server/internal/service/daily.go`
-  - 前端：`front-web/src/components/DailySentence.tsx`、`front-web/src/contexts/ColorContext.tsx`
-  - 文档：`docs/api/daily.md`、`docs/execute/daily-sentence-implementation.md`、`docs/execute/2025-01-27-navbar-color-optimization.md`
+  - 后端：`server/internal/controller/file/`、`server/internal/service/file.go`、`server/internal/dao/file.go`
+  - 前端：`front-web/src/app/file/page.tsx`、`front-web/src/components/FileManagement/`
+  - 文档：`docs/api/file_api.md`、`docs/db/db.md`（包含files表和file_download_logs表结构）
 
 ### 访问统计功能（已完成）
 - **功能描述**: 记录用户访问信息，支持PostgreSQL和文件存储

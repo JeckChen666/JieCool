@@ -1,0 +1,217 @@
+.fileManagement {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 24px 16px;
+  background-color: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 24px;
+}
+
+.mainCard {
+  margin: 0 24px;
+  min-height: calc(100vh - 120px);
+}
+
+.mainCard .arco-card-body {
+  padding: 0;
+}
+
+.tabContent {
+  padding: 24px;
+  min-height: 600px;
+}
+
+/* 文件详情弹窗样式 */
+.detailLoading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 0;
+  color: #999;
+}
+
+.fileDetail {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.thumbnailPreview {
+  text-align: center;
+}
+
+.thumbnailImage {
+  max-width: 100%;
+  max-height: 200px;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Tab 样式优化 */
+.fileManagement :global(.arco-tabs-header) {
+  background-color: #fafafa;
+  margin: 0;
+  padding: 0 24px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.fileManagement :global(.arco-tabs-tab) {
+  padding: 16px 24px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.fileManagement :global(.arco-tabs-tab-active) {
+  background-color: #fff;
+  border-bottom: 2px solid #1890ff;
+}
+
+.fileManagement :global(.arco-tabs-content) {
+  background-color: #fff;
+}
+
+/* 描述列表样式优化 */
+.fileManagement :global(.arco-descriptions-title) {
+  font-size: 16px;
+  font-weight: 600;
+  color: #262626;
+  margin-bottom: 16px;
+}
+
+.fileManagement :global(.arco-descriptions-item-label) {
+  font-weight: 500;
+  color: #595959;
+}
+
+.fileManagement :global(.arco-descriptions-item-value) {
+  color: #262626;
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .header {
+    padding: 16px 16px 12px;
+  }
+  
+  .mainCard {
+    margin: 0 16px;
+  }
+  
+  .tabContent {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 12px;
+  }
+  
+  .mainCard {
+    margin: 0 8px;
+    min-height: calc(100vh - 140px);
+  }
+  
+  .tabContent {
+    padding: 12px;
+    min-height: 500px;
+  }
+  
+  /* Tab 响应式样式 */
+  .fileManagement :global(.arco-tabs-header) {
+    padding: 0 12px;
+  }
+  
+  .fileManagement :global(.arco-tabs-tab) {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+  
+  /* 弹窗在移动端的适配 */
+  .fileDetail {
+    max-height: 60vh;
+  }
+  
+  .thumbnailImage {
+    max-height: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 8px;
+  }
+  
+  .mainCard {
+    margin: 0 4px;
+  }
+  
+  .tabContent {
+    padding: 8px;
+    min-height: 400px;
+  }
+  
+  /* Tab 响应式样式 */
+  .fileManagement :global(.arco-tabs-header) {
+    padding: 0 8px;
+  }
+  
+  .fileManagement :global(.arco-tabs-tab) {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  
+  /* 弹窗响应式样式 */
+  .fileManagement :global(.arco-modal) {
+    width: 95vw !important;
+    max-width: none !important;
+  }
+  
+  .fileDetail {
+    max-height: 50vh;
+  }
+}
+
+/* 动画效果 */
+.tabContent {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 滚动条样式 */
+.fileDetail::-webkit-scrollbar {
+  width: 6px;
+}
+
+.fileDetail::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.fileDetail::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.fileDetail::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

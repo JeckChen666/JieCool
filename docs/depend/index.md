@@ -5,14 +5,15 @@
 ## 总览
 
 - 前端工程：front-web
-  - 框架与运行时：Next.js 15.5.4、React 19.1.0、React DOM 19.1.0
+  - 框架与运行时：Next.js 14.2.15、React 18.3.1、React DOM 18.3.1
   - 组件库：@arco-design/web-react ^2.66.5（配套全局样式）
-  - 语言与构建：TypeScript ^5、ESLint ^9、Tailwind CSS ^4（模板默认引入）
-  - 请求管理：alova v3（通过子路径导入：`alova/react`、`alova/fetch`、`alova/client`）
+  - 语言与构建：TypeScript ^5、ESLint ^8、Tailwind CSS ^4（模板默认引入）
+  - 请求管理：alova ^3.3.4（通过子路径导入：`alova/react`、`alova/fetch`、`alova/client`）
 - 后端工程：server
-  - 框架：GoFrame v2（当前 go.mod 记录为 v2.7.1，CLI 运行为 v2.9.x）
-  - 语言与工具：Go 1.24.4（本机环境），gf CLI v2（用于脚手架与 dev-run）
-  - 数据库驱动：pgsql（建议显式引入 github.com/gogf/gf/contrib/drivers/pgsql/v2）
+  - 框架：GoFrame v2.9.3（已统一CLI与库版本）
+  - 语言与工具：Go 1.23.0（工具链 go1.24.4），gf CLI v2（用于脚手架与 dev-run）
+  - 数据库驱动：github.com/gogf/gf/contrib/drivers/pgsql/v2 v2.9.3（已引入）
+  - 图像处理：github.com/disintegration/imaging v1.6.2（用于缩略图生成）
 - 数据库：PostgreSQL 18
   - 本地/测试连接：见 docs/db/db.md 中的环境变量与连接示例
 
@@ -24,18 +25,19 @@
 {
   "dependencies": {
     "@arco-design/web-react": "^2.66.5",
-    "next": "15.5.4",
-    "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "alova": "^3.3.4",
+    "next": "14.2.15",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "15.5.4",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.15",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
@@ -64,18 +66,20 @@
 ```go
 module server
 
-go 1.18
+go 1.23.0
 
-require github.com/gogf/gf/v2 v2.7.1
+toolchain go1.24.4
+
+require (
+	github.com/gogf/gf/contrib/drivers/pgsql/v2 v2.9.3
+	github.com/gogf/gf/v2 v2.9.3
+)
 ```
 
 说明与约定：
-- CLI 版本与库版本差异：当前通过 gf CLI v2.9.x 开发，go.mod 记录 v2.7.1。后续建议统一到 v2.9.x，确保特性一致（通过 `go get github.com/gogf/gf/v2@v2.9.3` 或更新脚手架生成的版本）。
-- 数据库驱动：采用 PostgreSQL 时，建议在 go.mod 中显式加入：
-
-```go
-require github.com/gogf/gf/contrib/drivers/pgsql/v2 v2.9.3 // or latest
-```
+- 版本统一：CLI 版本与库版本已统一到 v2.9.3，确保特性一致性。
+- 数据库驱动：已显式引入 PostgreSQL 驱动 `github.com/gogf/gf/contrib/drivers/pgsql/v2 v2.9.3`。
+- 图像处理：项目中使用 `github.com/disintegration/imaging v1.6.2` 用于文件管理功能的缩略图生成。
 
 - 运行与开发：使用 gf CLI 进行构建与热启动：
   - `& "C:\\Users\\<用户名>\\go\\bin\\gf.exe" run main.go`
@@ -98,9 +102,9 @@ database:
 ## 版本与更新策略（SemVer）
 
 - 固定核心版本：
-  - Next.js 与 eslint-config-next 同步固定（例如 15.5.4）。
-  - React/React DOM 固定主次版本以减少破坏性变更（当前 19.1.0）。
-  - GoFrame 统一到 v2.9.x，避免 CLI 与库版本不一致导致的差异行为。
+  - Next.js 与 eslint-config-next 同步固定（当前 14.2.15）。
+  - React/React DOM 固定主次版本以减少破坏性变更（当前 18.3.1）。
+  - GoFrame 已统一到 v2.9.3，CLI 与库版本保持一致。
 - caret(^) 与固定版本：
   - 前端对 UI 库与构建工具使用 `^` 可允许小版本更新，但重要基座（next、react）建议固定版本并通过定期升级验证。
   - 后端 go.mod 对核心框架与数据库驱动建议指定明确版本号，升级前在测试环境验证。

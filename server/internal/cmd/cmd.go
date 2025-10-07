@@ -8,6 +8,7 @@ import (
 	"github.com/gogf/gf/v2/os/gcmd"
 
 	"server/internal/controller/daily"
+	"server/internal/controller/file"
 	"server/internal/controller/hello"
 	"server/internal/controller/visit"
 )
@@ -26,6 +27,7 @@ var (
 					hello.NewV1(),
 					visit.NewV1(),
 					daily.NewV1(),
+					file.NewV1(),
 				)
 			})
 			s.SetPort(8080)

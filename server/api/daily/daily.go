@@ -7,7 +7,7 @@ package daily
 import (
 	"context"
 
-	v1 "server/api/daily/v1"
+	"server/api/daily/v1"
 )
 
 type IDailyV1 interface {

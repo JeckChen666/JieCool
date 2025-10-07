@@ -12,6 +12,7 @@ const SITE_NAME = "JieCool";
 function getTitleFromPath(pathname: string) {
   const map: Record<string, string> = {
     "/": "首页",
+    "/file-management": "文件管理",
   };
   return map[pathname] || "页面";
 }
@@ -74,7 +75,10 @@ export default function Navbar() {
       <div className={styles.right}>
         <Dropdown
           ariaLabel="Jump to"
-          options={[{ label: "首页", value: "/" }]}
+          options={[
+            { label: "首页", value: "/" },
+            { label: "文件管理", value: "/file-management" }
+          ]}
           value={pathname}
           onChange={onJumpChange}
         />

@@ -1,0 +1,207 @@
+.fileListCard {
+  margin-bottom: 24px;
+}
+
+.filterBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 16px;
+  background-color: #fafafa;
+  border-radius: 6px;
+}
+
+.searchSection {
+  flex: 1;
+  margin-right: 16px;
+}
+
+.fileTable {
+  margin-bottom: 16px;
+}
+
+.fileCell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.thumbnail {
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.fileInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.fileName {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.mimeType {
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.md5Text {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #666;
+  cursor: pointer;
+}
+
+.paginationWrapper {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
+  border-top: 1px solid #f0f0f0;
+}
+
+.errorMessage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background-color: #fff2f0;
+  border: 1px solid #ffccc7;
+  border-radius: 6px;
+  margin-top: 16px;
+}
+
+/* 批量操作样式 */
+.batchActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding: 12px 16px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+/* 删除确认对话框样式 */
+.deleteConfirm {
+  padding: 8px 0;
+}
+
+.deleteInfo {
+  margin: 16px 0 12px 0;
+}
+
+.fileList {
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  padding: 0;
+  margin: 12px 0;
+  background-color: #fafafa;
+}
+
+.fileItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  background-color: #fff;
+  transition: background-color 0.2s ease;
+}
+
+.fileItem:hover {
+  background-color: #f8f9fa;
+}
+
+.fileItem:last-child {
+  border-bottom: none;
+}
+
+.fileItem .fileName {
+  font-weight: 500;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300px;
+  font-size: 14px;
+}
+
+.fileItem .fileSize {
+  color: #666;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.summary {
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  margin: 16px 0;
+  border: 1px solid #e8e8e8;
+}
+
+.deleteOptions {
+  margin: 16px 0 8px 0;
+  padding: 12px 16px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e8e8e8;
+}
+
+/* 文件图标样式 */
+.fileIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  background-color: #f5f5f5;
+}
+
+.fileSize {
+  font-size: 12px;
+  color: #999;
+  margin-top: 2px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .filterBar {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  .searchSection {
+    margin-right: 0;
+  }
+  
+  .fileName {
+    max-width: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .filterBar {
+    padding: 12px;
+  }
+  
+  .fileName {
+    max-width: 120px;
+  }
+  
+  .fileCell {
+    gap: 8px;
+  }
+}

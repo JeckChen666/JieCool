@@ -31,7 +31,11 @@ export default function RootLayout({
         */}
         <ClientProvider>
           <Navbar />
-          <main style={{ paddingTop: 'var(--navbar-height)' }}>{children}</main>
+          {/*
+            顶部导航固定在页面顶部，高度由 --navbar-height 控制。
+            主内容区域高度 = 视口高度 - 导航高度；仅主内容区域内部滚动，外层不滚动。
+          */}
+          <main className="app-main">{children}</main>
         </ClientProvider>
       </body>
     </html>

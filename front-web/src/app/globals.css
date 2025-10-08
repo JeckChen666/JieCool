@@ -43,6 +43,15 @@ html, body {
 }
 body {
   margin: 0;
+  /* 外层不滚动，仅内容区滚动 */
+  overflow: hidden;
+}
+
+/* 主内容区域：高度 = 视口高度 - 导航栏高度；仅内部滚动 */
+.app-main {
+  height: calc(100vh - var(--navbar-height));
+  margin-top: var(--navbar-height);
+  overflow: auto;
 }
 
 /* 响应式导航栏高度调整 */

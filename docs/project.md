@@ -301,10 +301,10 @@ deploy/
   - 文件大小限制：默认限制 100MB，防止恶意上传
   - 路径安全：使用 UUID 命名，避免路径遍历攻击
 - **最新修复**:
-  - MD5数据显示修复（2025-01-28）：修复前端文件详情页面MD5值显示问题，后端API返回结构增加FileMd5字段，确保前端能正确获取和显示完整的MD5值
-  - 文件删除功能修复（2025-01-28）：完全移除撤销删除功能，修复重复删除请求问题，实现简单可靠的二次确认机制
-  - 统计功能修复（2025-01-27）：修复文件类型统计显示 "NaN undefined" 问题，完善 ExtensionStats 结构，添加 size 字段支持
-  - 文件完整性修复（2025-01-27）：修复文件上传下载过程中的数据损坏问题，添加MD5完整性验证机制，确保文件传输的可靠性
+  - MD5数据显示修复：修复前端文件详情页面MD5值显示问题，后端API返回结构增加FileMd5字段，确保前端能正确获取和显示完整的MD5值
+  - 文件删除功能修复：完全移除撤销删除功能，修复重复删除请求问题，实现简单可靠的二次确认机制
+  - 统计功能修复：修复文件类型统计显示 "NaN undefined" 问题，完善 ExtensionStats 结构，添加 size 字段支持
+  - 文件完整性修复：修复文件上传下载过程中的数据损坏问题，添加MD5完整性验证机制，确保文件传输的可靠性
 - **文件位置**:
   - 后端：`server/internal/controller/file/`、`server/internal/service/file.go`、`server/internal/dao/file.go`
   - 前端：`front-web/src/app/file/page.tsx`、`front-web/src/components/FileManagement/`

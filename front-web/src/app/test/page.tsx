@@ -2,33 +2,52 @@
 
 import React from 'react';
 import styles from './test.module.css';
+import Link from 'next/link';
+import { Table } from '@arco-design/web-react';
 
 /**
  * 测试页面组件
- * 这是一个简单的空白测试页面，用于验证页面跳转功能
+ * 显示一个表格，左边为中文名，右边为路径，点击路径可以跳转。
  */
 const TestPage: React.FC = () => {
+  const routes = [
+    { path: '/', name: '首页' },
+    { path: '/file-management', name: '文件管理' },
+    { path: '/test', name: '测试页面' },
+  ];
+
+  const columns = [
+    {
+      title: '中文名',
+      dataIndex: 'name',
+      key: 'name',
+    },
+    {
+      title: '路径',
+      dataIndex: 'path',
+      key: 'path',
+      render: (path: string) => (
+        <Link href={path} className={styles.routeLink}>
+          {path}
+        </Link>
+      ),
+    },
+  ];
+
   return (
     <div className={styles.container}>
       <div className={styles.content}>
         <h1 className={styles.title}>测试页面</h1>
         <p className={styles.description}>
-          欢迎来到测试页面！这是一个简单的空白页面，用于验证导航功能。
+          以下是前端所有路径的表格，点击路径即可跳转：
         </p>
-        <div className={styles.actions}>
-          <button 
-            className={styles.backButton}
-            onClick={() => window.history.back()}
-          >
-            返回上一页
-          </button>
-          <button 
-            className={styles.homeButton}
-            onClick={() => window.location.href = '/'}
-          >
-            回到首页
-          </button>
-        </div>
+        <Table
+          columns={columns}
+          data={routes}
+          rowKey="path"
+          pagination={false} // 禁用分页
+          className={styles.routeTable}
+        />
       </div>
     </div>
   );

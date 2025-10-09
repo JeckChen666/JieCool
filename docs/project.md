@@ -96,6 +96,18 @@ front-web/
 min-height: calc(100vh - var(--navbar-height))
 ```
 
+测试页面路径登记规范（重要）：
+- 目的：在“测试页面”统一列出并可跳转到所有前端路径，便于开发、测试与验收。
+- 要求：每次新增页面/路由，必须在 front-web/src/app/test/page.tsx 的 routes 数组中新增记录，包含中文名 name 与路径 path。
+- 展示：测试页使用 Arco Design 的 Table 组件展示两列（中文名、路径），路径使用 next/link 跳转；禁用分页（pagination=false）。
+- 一致性：name 应与 Navbar/页面标题保持一致；若页面在 Navbar 中可点击，测试页也必须包含该路径。
+- 建议：可将 routes 抽取为共享模块（如 front-web/src/app/routes.ts），由 Navbar 与测试页共同引用，减少重复维护。
+- Checklist：
+  - [ ] 新页面/路由已创建（App Router 目录）
+  - [ ] routes 数组已添加记录（name、path）
+  - [ ] 测试页面显示该路径并可正常跳转
+  - [ ] Navbar 展示与测试页条目名称一致（如适用）
+
 五、后端目录结构（server/）
 
 遵循 GoFrame 官方工程规范，分层清晰、注释完善，统一配置与中间件。

@@ -91,6 +91,10 @@ front-web/
 - Arco Design：通过 ArcoProvider、主题文件（arco-theme.less）实现品牌色与组件风格定制；按需引入、减少体积。
 - 国际化：最小集成 zh-CN/en-US，后续可扩展。
 - 类型共享：lib/api/types.ts 建议结合后端 OpenAPI 自动生成类型，减少重复劳动。
+- 页面布局：采用顶部导航栏+主内容区的布局，主内容区的最小高度需要设置为
+```text
+min-height: calc(100vh - var(--navbar-height))
+```
 
 五、后端目录结构（server/）
 

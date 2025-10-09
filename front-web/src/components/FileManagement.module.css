@@ -1,5 +1,5 @@
 .fileManagement {
-  min-height: 100vh;
+  min-height: calc(100vh - var(--navbar-height));
   background-color: #f5f5f5;
 }
 
@@ -15,7 +15,7 @@
 
 .mainCard {
   margin: 0 24px;
-  min-height: calc(100vh - 120px);
+  min-height: calc(100vh - 120px - var(--navbar-height));
 }
 
 .mainCard .arco-card-body {
@@ -118,7 +118,7 @@
   
   .mainCard {
     margin: 0 8px;
-    min-height: calc(100vh - 140px);
+    min-height: calc(100vh - 140px - var(--navbar-height));
   }
   
   .tabContent {

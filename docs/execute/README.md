@@ -25,3 +25,4 @@
 - `2025-10-06-exec.md` - 后续功能开发与调试
 - `daily-sentence-implementation.md` - 每日一句功能实现详细文档
 - `2025-01-27-navbar-color-optimization.md` - 导航栏颜色优化执行文档
+- `2025-10-09-dynamic-config-and-cache-plan.md` - 动态配置（KV）与缓存体系实施计划（启动预加载、变更重建、外部刷新接口）

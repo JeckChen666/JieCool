@@ -7,7 +7,7 @@ package file
 import (
 	"context"
 
-	v1 "server/api/file/v1"
+	"server/api/file/v1"
 )
 
 type IFileV1 interface {

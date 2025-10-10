@@ -1,4 +1,6 @@
-@import "tailwindcss";
+/* Tailwind v3 style without base layer to disable Preflight and avoid conflicts with Arco Design */
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --background: #ffffff;

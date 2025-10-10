@@ -61,6 +61,12 @@
   - 接口：docs/api/daily.md
   - 资源：docs/resource/iciba.md
 
+- 动态配置功能（KV + 进程内缓存）：
+  - 概述与计划：docs/execute/2025-10-09-dynamic-config-and-cache-plan.md（包含架构、阶段目标与刷新接口设计）
+  - 实施记录：docs/execute/2025-10-09-dynamic-config-implementation.md（落地过程、关键变更与前端集成验证）
+  - 接口文档：docs/api/config.md（CRUD、版本历史、导入/导出、刷新缓存、缓存统计）
+  - 管理页面：/admin/config/manage（前端 Next.js 页，含“刷新缓存”按钮与条目数展示）
+
 文档协作建议
 - 使用简洁、统一的术语与格式；尽量以要点 + 有序步骤的形式编写，减少长段落。
 - 在提交代码的同时提交对应的文档更新（Docs as Code），保持代码与文档同步。

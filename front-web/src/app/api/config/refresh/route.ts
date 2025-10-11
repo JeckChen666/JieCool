@@ -11,7 +11,10 @@ export async function POST(req: Request) {
       body: JSON.stringify({ reason: body?.reason || "frontend-refresh" }),
     });
     const data = await resp.json();
-    return NextResponse.json(data, { status: resp.status });
+    // 后端返回形如 { code, message, data: { status, entries, elapsed_ms } }
+    // 统一解包为前端期望的 { status, entries, elapsed_ms }
+    const result = (data && typeof data === "object" && "data" in data) ? (data as any).data : data;
+    return NextResponse.json(result, { status: resp.status });
   } catch (e) {
     return NextResponse.json({ error: "upstream_error" }, { status: 502 });
   }

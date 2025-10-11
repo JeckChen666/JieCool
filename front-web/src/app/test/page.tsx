@@ -14,6 +14,7 @@ const TestPage: React.FC = () => {
     { path: '/', name: '首页' },
     { path: '/file-management', name: '文件管理' },
     { path: '/test', name: '测试页面' },
+    { path: '/admin/config', name: '管理' },
     { path: '/admin/config/manage', name: '动态配置管理' },
   ];
 

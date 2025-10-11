@@ -461,6 +461,40 @@ func (s *sFile) GetFileStats(ctx context.Context) (map[string]interface{}, error
 	}
 	stats["today_uploads"] = todayUploads
 
+	// 总下载次数
+	totalDownloadsRes, err := dao.Files.Ctx(ctx).
+		Where("file_status", "active").
+		Fields("SUM(download_count) as total_downloads").
+		One()
+	if err != nil {
+		return nil, gerror.Wrap(err, "查询总下载次数失败")
+	}
+	if !totalDownloadsRes.IsEmpty() {
+		stats["total_downloads"] = totalDownloadsRes["total_downloads"].Int64()
+	} else {
+		stats["total_downloads"] = int64(0)
+	}
+
+	// 文件大小分布统计（0-1MB, 1-10MB, 10MB+）
+	sizeDistRes, err := dao.Files.Ctx(ctx).
+		Where("file_status", "active").
+		Fields("SUM(CASE WHEN file_size < 1048576 THEN 1 ELSE 0 END) AS count_0_1mb, " +
+			"SUM(CASE WHEN file_size >= 1048576 AND file_size < 10485760 THEN 1 ELSE 0 END) AS count_1_10mb, " +
+			"SUM(CASE WHEN file_size >= 10485760 THEN 1 ELSE 0 END) AS count_10mb_plus").
+		One()
+	if err != nil {
+		return nil, gerror.Wrap(err, "查询大小分布统计失败")
+	}
+	if !sizeDistRes.IsEmpty() {
+		stats["size_0_1mb"] = sizeDistRes["count_0_1mb"].Int64()
+		stats["size_1_10mb"] = sizeDistRes["count_1_10mb"].Int64()
+		stats["size_10mb_plus"] = sizeDistRes["count_10mb_plus"].Int64()
+	} else {
+		stats["size_0_1mb"] = int64(0)
+		stats["size_1_10mb"] = int64(0)
+		stats["size_10mb_plus"] = int64(0)
+	}
+
 	return stats, nil
 }
 

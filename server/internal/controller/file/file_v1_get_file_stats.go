@@ -70,6 +70,25 @@ func (c *ControllerV1) GetFileStats(ctx context.Context, req *v1.GetFileStatsReq
 
 	// 处理大小分布数据（暂时为空，因为service层还没有实现）
 	var sizeDistribution []v1.SizeDistribution
+	// 从服务层返回的统计数据中构建大小分布
+	if _, ok := stats["size_0_1mb"]; ok {
+		count := toInt64(stats["size_0_1mb"])
+		if count > 0 {
+			sizeDistribution = append(sizeDistribution, v1.SizeDistribution{Range: "0-1MB", Count: count})
+		}
+	}
+	if _, ok := stats["size_1_10mb"]; ok {
+		count := toInt64(stats["size_1_10mb"])
+		if count > 0 {
+			sizeDistribution = append(sizeDistribution, v1.SizeDistribution{Range: "1-10MB", Count: count})
+		}
+	}
+	if _, ok := stats["size_10mb_plus"]; ok {
+		count := toInt64(stats["size_10mb_plus"])
+		if count > 0 {
+			sizeDistribution = append(sizeDistribution, v1.SizeDistribution{Range: "10MB+", Count: count})
+		}
+	}
 
 	return &v1.GetFileStatsRes{
 		FileStats: v1.FileStats{

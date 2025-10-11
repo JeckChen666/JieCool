@@ -5,7 +5,7 @@ import "./globals.css";
 import "@arco-design/web-react/dist/css/arco.css";
 // 使用 Client 组件包裹全局 Arco ConfigProvider，避免在 Server Component 中使用 React Context
 import ClientProvider from "@/components/ClientProvider";
-import Navbar from "@/components/Navbar";
+import Navbar from "@/components/layout/Navbar";
 
 const inter = Inter({
   variable: "--font-inter",

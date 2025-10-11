@@ -1,6 +1,6 @@
 import styles from "./page.module.css";
-import VisitTracker from "@/components/VisitTracker";
-import DailySentence from "@/components/DailySentence";
+import VisitTracker from "@/components/features/visit/VisitTracker";
+import DailySentence from "@/components/features/daily/DailySentence";
 
 export default function Home() {
   return (

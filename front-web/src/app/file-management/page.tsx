@@ -1,4 +1,4 @@
-import FileManagement from '@/components/FileManagement';
+import FileManagement from '@/components/features/files/FileManagement';
 
 export default function FileManagementPage() {
   return <FileManagement />;

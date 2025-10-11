@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import styles from "./Navbar.module.css";
-import Dropdown from "./ui/Dropdown";
+import Dropdown from "../ui/Dropdown";
 import { useColor } from "@/contexts/ColorContext";
 
 const SITE_NAME = "JieCool";

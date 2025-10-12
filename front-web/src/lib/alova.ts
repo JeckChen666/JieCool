@@ -8,7 +8,8 @@ import adapterFetch from "alova/fetch";
 // 注意：仅在客户端组件中使用 useRequest/useFetcher 等 Hook
 // baseURL 读取 NEXT_PUBLIC_API_BASE 环境变量，默认指向本地后端 8080 端口
 export const alova = createAlova({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8080",
+  // 统一通过前端域名发起请求，结合 next.config.js 的 rewrites 进行代理转发
+  baseURL: "",
   statesHook: ReactHook,
   requestAdapter: adapterFetch(),
   // 请求拦截器

@@ -15,6 +15,7 @@ type IFileV1 interface {
 	DownloadFile(ctx context.Context, req *v1.DownloadFileReq) (res *v1.DownloadFileRes, err error)
 	GetThumbnail(ctx context.Context, req *v1.GetThumbnailReq) (res *v1.GetThumbnailRes, err error)
 	GetFileInfo(ctx context.Context, req *v1.GetFileInfoReq) (res *v1.GetFileInfoRes, err error)
+	GetFileInfoByID(ctx context.Context, req *v1.GetFileInfoByIDReq) (res *v1.GetFileInfoRes, err error)
 	GetFileList(ctx context.Context, req *v1.GetFileListReq) (res *v1.GetFileListRes, err error)
 	DeleteFile(ctx context.Context, req *v1.DeleteFileReq) (res *v1.DeleteFileRes, err error)
 	RestoreFile(ctx context.Context, req *v1.RestoreFileReq) (res *v1.RestoreFileRes, err error)

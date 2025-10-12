@@ -55,6 +55,12 @@ type GetFileInfoReq struct {
 	FileUuid string `json:"file_uuid" v:"required#文件UUID不能为空" dc:"文件唯一标识符"`
 }
 
+// GetFileInfoByIDReq 根据文件ID获取文件信息请求结构
+type GetFileInfoByIDReq struct {
+	g.Meta `path:"/file/info/by-id/{id}" tags:"File" method:"get" summary:"Get file information by ID"`
+	Id     int64 `json:"id" v:"required|min:1#文件ID无效" dc:"文件ID（files.id）"`
+}
+
 // GetFileInfoRes 获取文件信息响应结构
 type GetFileInfoRes struct {
 	Id              int64       `json:"id" dc:"文件ID"`

@@ -244,6 +244,14 @@ export const fileApi = {
   },
 
   /**
+   * 根据文件ID获取文件信息
+   * @param id 文件ID（files.id）
+   */
+  getFileInfoById: (id: number) => {
+    return alova.Get<FileInfo>(`/file/info/by-id/${id}`);
+  },
+
+  /**
    * 删除文件
    * @param fileUuid 文件UUID
    */
@@ -279,7 +287,8 @@ export const fileApi = {
    * @param fileUuid 文件UUID
    */
   getDownloadUrl: (fileUuid: string) => {
-    return `http://localhost:8080/file/download/${fileUuid}`;
+    // 返回相对路径，交由 Next.js rewrites 代理到后端
+    return `/api/v1/file/download/${fileUuid}`;
   },
 
   /**
@@ -287,7 +296,8 @@ export const fileApi = {
    * @param fileUuid 文件UUID
    */
   getThumbnailUrl: (fileUuid: string) => {
-    return `http://localhost:8080/file/thumbnail/${fileUuid}`;
+    // 返回相对路径，交由 Next.js rewrites 代理到后端
+    return `/api/v1/file/thumbnail/${fileUuid}`;
   }
 };
 

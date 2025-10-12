@@ -31,6 +31,9 @@ type IFile interface {
 	// GetFileByUUID 根据UUID获取文件
 	GetFileByUUID(ctx context.Context, fileUUID string) (*entity.Files, error)
 
+	// GetFileByID 根据ID获取文件
+	GetFileByID(ctx context.Context, fileID int64) (*entity.Files, error)
+
 	// GetFileContent 获取文件内容
 	// 返回值：文件内容, 文件名, MIME类型, 错误
 	GetFileContent(ctx context.Context, fileUUID string) ([]byte, string, string, error)
@@ -210,6 +213,25 @@ func (s *sFile) UploadFile(ctx context.Context, file *multipart.FileHeader, cate
 // GetFileByUUID 根据UUID获取文件
 func (s *sFile) GetFileByUUID(ctx context.Context, fileUUID string) (*entity.Files, error) {
 	fileRecord, err := dao.Files.Ctx(ctx).Where("file_uuid", fileUUID).Where("file_status", "active").One()
+	if err != nil {
+		return nil, gerror.Wrap(err, "查询文件失败")
+	}
+
+	if fileRecord.IsEmpty() {
+		return nil, gerror.New("文件不存在")
+	}
+
+	var fileEntity entity.Files
+	if err := fileRecord.Struct(&fileEntity); err != nil {
+		return nil, gerror.Wrap(err, "解析文件记录失败")
+	}
+
+	return &fileEntity, nil
+}
+
+// GetFileByID 根据ID获取文件
+func (s *sFile) GetFileByID(ctx context.Context, fileID int64) (*entity.Files, error) {
+	fileRecord, err := dao.Files.Ctx(ctx).Where("id", fileID).Where("file_status", "active").One()
 	if err != nil {
 		return nil, gerror.Wrap(err, "查询文件失败")
 	}

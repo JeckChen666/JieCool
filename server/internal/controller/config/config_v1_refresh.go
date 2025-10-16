@@ -12,7 +12,12 @@ import (
 )
 
 func (c *ControllerV1) Refresh(ctx context.Context, req *v1.RefreshReq) (res *v1.RefreshRes, err error) {
-	// TODO: 在此添加鉴权与审计逻辑（例如仅管理员可操作，并记录操作人与原因）
+	// 仅管理员可执行
+	r := g.RequestFromCtx(ctx)
+	subj := r.GetCtxVar("auth.subject").String()
+	if subj == "" || subj != "admin" {
+		return nil, gerror.New("forbidden")
+	}
 	entries, elapsed, rebuildErr := configcache.Rebuild(ctx)
 	if rebuildErr != nil {
 		g.Log().Error(ctx, "Config cache rebuild failed:", rebuildErr)

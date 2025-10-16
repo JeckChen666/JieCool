@@ -4,10 +4,11 @@ import { getServerUrl } from "../../../../lib/serverUrl";
 export async function POST(req: Request) {
   const serverUrl = getServerUrl();
   try {
+    const auth = req.headers.get("authorization") || "";
     const body = await req.json().catch(() => ({}));
     const resp = await fetch(`${serverUrl}/config/refresh`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: auth ? { "Content-Type": "application/json", Authorization: auth } : { "Content-Type": "application/json" },
       body: JSON.stringify({ reason: body?.reason || "frontend-refresh" }),
     });
     const data = await resp.json();

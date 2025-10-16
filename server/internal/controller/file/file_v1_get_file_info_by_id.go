@@ -11,13 +11,13 @@ import (
 )
 
 // GetFileInfoByID 根据文件ID获取文件信息
-func (c *ControllerV1) GetFileInfoByID(ctx context.Context, req *v1.GetFileInfoByIDReq) (res *v1.GetFileInfoRes, err error) {
+func (c *ControllerV1) GetFileInfoByID(ctx context.Context, req *v1.GetFileInfoByIDReq) (res *v1.GetFileInfoByIDRes, err error) {
 	fileEntity, err := service.File().GetFileByID(ctx, req.Id)
 	if err != nil {
 		return nil, gerror.Wrap(err, "查询文件信息失败")
 	}
 
-	res = &v1.GetFileInfoRes{
+	res = &v1.GetFileInfoByIDRes{
 		Id:              fileEntity.Id,
 		FileUuid:        fileEntity.FileUuid,
 		FileName:        fileEntity.FileName,

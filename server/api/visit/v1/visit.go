@@ -6,7 +6,7 @@ import (
 
 // CreateReq/Res 定义符合 gf gen ctrl 的约定（Operation+Req/Res）
 type CreateReq struct {
-	g.Meta `path:"/logs/visit" tags:"Visit" method:"post" summary:"Record a visit of home page"`
+	g.Meta `path:"/logs/visit" tags:"Visit" method:"post" summary:"Record a visit of home page" noAuth:"true"`
 }
 
 // CreateRes 为输出的响应结构，直接扁平化数据，不包含 status 字段

@@ -1,5 +1,7 @@
 "use client";
 import React from "react";
+import { useRouter } from "next/navigation";
+import { getToken } from "@/lib/token";
 import Link from "next/link";
 import {
   Typography,
@@ -13,13 +15,18 @@ import {
 import { IconRefresh } from "@arco-design/web-react/icon";
 
 export default function AdminConfigPage() {
+  const router = useRouter();
   const [entries, setEntries] = React.useState<number | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
 
   const loadStats = async () => {
     try {
-      const res = await fetch("/api/config/stats", { cache: "no-store" });
+      const token = getToken();
+      const res = await fetch("/api/config/stats", {
+        cache: "no-store",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       const data = await res.json();
       setEntries(typeof data?.entries === "number" ? data.entries : 0);
     } catch (e) {
@@ -33,9 +40,13 @@ export default function AdminConfigPage() {
     setLoading(true);
     setMessage(null);
     try {
+      const token = getToken();
       const res = await fetch("/api/config/refresh", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ reason: "frontend-refresh" }),
       });
       const data = await res.json();
@@ -60,7 +71,26 @@ export default function AdminConfigPage() {
   };
 
   React.useEffect(() => {
-    loadStats();
+    (async () => {
+      try {
+        const token = getToken();
+        const res = await fetch("/api/auth/me", {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          cache: "no-store",
+        });
+        const data = await res.json();
+        if (res.status === 401 || !data?.user) {
+          const next = encodeURIComponent(window.location.pathname);
+          router.replace(`/login?next=${next}`);
+          return;
+        }
+      } catch (_) {
+        const next = encodeURIComponent(window.location.pathname);
+        router.replace(`/login?next=${next}`);
+        return;
+      }
+      loadStats();
+    })();
   }, []);
 
   return (

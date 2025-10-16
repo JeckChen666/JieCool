@@ -3,6 +3,7 @@
 import { createAlova } from "alova";
 import ReactHook from "alova/react";
 import adapterFetch from "alova/fetch";
+import { getToken, clearToken } from "./token";
 
 // 全局 alova 实例配置
 // 注意：仅在客户端组件中使用 useRequest/useFetcher 等 Hook
@@ -15,7 +16,7 @@ export const alova = createAlova({
   // 请求拦截器
   beforeRequest(method) {
     // 例如为请求头添加 token
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : undefined;
+    const token = typeof window !== "undefined" ? getToken() || undefined : undefined;
     if (token) {
       method.config.headers = { ...(method.config.headers || {}), Authorization: `Bearer ${token}` };
     }
@@ -24,6 +25,17 @@ export const alova = createAlova({
   responded: {
     // 成功响应处理
     onSuccess: async (response) => {
+      // 统一处理未授权，跳转登录
+      if (response.status === 401 && typeof window !== "undefined") {
+        try {
+          clearToken();
+        } catch {}
+        const next = encodeURIComponent(`${window.location.pathname}${window.location.search}`);
+        if (window.location.pathname !== "/login") {
+          window.location.assign(`/login?next=${next}`);
+        }
+        throw new Error("未授权");
+      }
       // fetch 响应默认需手动解析
       const result = await response.json();
       

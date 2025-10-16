@@ -5,14 +5,15 @@ go 1.23.0
 toolchain go1.24.4
 
 require (
+	github.com/disintegration/imaging v1.6.2
 	github.com/gogf/gf/contrib/drivers/pgsql/v2 v2.9.3
 	github.com/gogf/gf/v2 v2.9.3
+	github.com/golang-jwt/jwt/v5 v5.3.0
 )
 
 require (
 	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/clbanning/mxj/v2 v2.7.0 // indirect
-	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect

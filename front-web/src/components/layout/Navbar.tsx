@@ -2,10 +2,12 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import styles from "./Navbar.module.css";
 import Dropdown from "../ui/Dropdown";
 import { useColor } from "@/contexts/ColorContext";
+import { getToken, clearToken } from "@/lib/token";
+import { Message } from "@arco-design/web-react";
 
 const SITE_NAME = "JieCool";
 
@@ -13,16 +15,20 @@ function getTitleFromPath(pathname: string) {
   const map: Record<string, string> = {
     "/": "首页",
     "/file-management": "文件管理",
+    "/admin/config": "配置管理",
+    "/admin/url-token": "URL Token管理",
   };
   return map[pathname] || "页面";
 }
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const pageTitle = useMemo(() => getTitleFromPath(pathname), [pathname]);
 
   const [theme, setTheme] = useState<string | null>(null);
   const [lang, setLang] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   
   // 使用全局颜色上下文
   const { dominantColor } = useColor();
@@ -36,6 +42,11 @@ export default function Navbar() {
     const savedLang = localStorage.getItem("lang") || "zh";
     setLang(savedLang);
     document.documentElement.lang = savedLang === "zh" ? "zh-CN" : "en";
+    // 初始化登录状态
+    try {
+      const t = getToken();
+      setIsLoggedIn(!!t);
+    } catch {}
   }, []);
 
   const onThemeToggle = () => {
@@ -54,6 +65,31 @@ export default function Navbar() {
   const onJumpChange = (to: string) => {
     if (to && to !== pathname) {
       window.location.assign(to);
+    }
+  };
+
+  const onLogout = async () => {
+    try {
+      const token = getToken();
+      const resp = await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      const data = await resp.json();
+      if (resp.status === 401) {
+        throw new Error(data?.message || "未授权");
+      }
+      if (data?.loggedOut) {
+        clearToken();
+        setIsLoggedIn(false);
+        Message.success("已退出登录");
+        const next = pathname || "/";
+        router.push(`/login?next=${encodeURIComponent(next)}`);
+      } else {
+        throw new Error(data?.message || "登出失败");
+      }
+    } catch (e: any) {
+      Message.error(e?.message || "登出失败");
     }
   };
 
@@ -77,7 +113,11 @@ export default function Navbar() {
           ariaLabel="Jump to"
           options={[
             { label: "首页", value: "/" },
-            { label: "文件管理", value: "/file-management" }
+            { label: "文件管理", value: "/file-management" },
+            ...(isLoggedIn ? [
+              { label: "配置管理", value: "/admin/config" },
+              { label: "URL Token", value: "/admin/url-token" }
+            ] : [])
           ]}
           value={pathname}
           onChange={onJumpChange}
@@ -92,6 +132,12 @@ export default function Navbar() {
           value={lang ?? "zh"}
           onChange={onLangChange}
         />
+
+        {isLoggedIn && (
+          <button type="button" className={styles.button} onClick={onLogout}>
+            退出登录
+          </button>
+        )}
 
         <button type="button" className={styles.button} onClick={onThemeToggle}>
           {theme === "dark" ? "🌙 暗黑" : "☀️ 亮色"}

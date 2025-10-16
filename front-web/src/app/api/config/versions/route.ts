@@ -9,7 +9,11 @@ export async function GET(req: NextRequest) {
   const qs = req.nextUrl.searchParams.toString();
   const url = `${serverUrl}/config/versions${qs ? `?${qs}` : ""}`;
   try {
-    const resp = await fetch(url, { cache: "no-store" });
+    const auth = req.headers.get("authorization") || "";
+    const resp = await fetch(url, {
+      cache: "no-store",
+      headers: auth ? { Authorization: auth } : undefined,
+    });
     const backend = await resp.json();
     const items = backend?.data?.items ?? [];
     return NextResponse.json({ items }, { status: resp.status });

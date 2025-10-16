@@ -61,6 +61,30 @@ type GetFileInfoByIDReq struct {
 	Id     int64 `json:"id" v:"required|min:1#文件ID无效" dc:"文件ID（files.id）"`
 }
 
+// GetFileInfoByIDRes 根据文件ID获取文件信息响应结构
+type GetFileInfoByIDRes struct {
+	Id              int64       `json:"id" dc:"文件ID"`
+	FileUuid        string      `json:"file_uuid" dc:"文件唯一标识符"`
+	FileName        string      `json:"file_name" dc:"文件名"`
+	FileExtension   string      `json:"file_extension" dc:"文件扩展名"`
+	FileSize        int64       `json:"file_size" dc:"文件大小（字节）"`
+	MimeType        string      `json:"mime_type" dc:"MIME类型"`
+	FileCategory    string      `json:"file_category" dc:"文件分类"`
+	FileHash        string      `json:"file_hash" dc:"文件哈希值"`
+	FileMd5         string      `json:"file_md5" dc:"文件MD5哈希值"`
+	HasThumbnail    bool        `json:"has_thumbnail" dc:"是否有缩略图"`
+	ThumbnailWidth  int         `json:"thumbnail_width,omitempty" dc:"缩略图宽度"`
+	ThumbnailHeight int         `json:"thumbnail_height,omitempty" dc:"缩略图高度"`
+	DownloadCount   int64       `json:"download_count" dc:"下载次数"`
+	LastDownloadAt  string      `json:"last_download_at,omitempty" dc:"最近一次下载时间"`
+	Metadata        interface{} `json:"metadata,omitempty" dc:"文件元数据"`
+	FileStatus      string      `json:"file_status" dc:"文件状态"`
+	CreatedAt       string      `json:"created_at" dc:"创建时间"`
+	UpdatedAt       string      `json:"updated_at" dc:"更新时间"`
+	DownloadUrl     string      `json:"download_url" dc:"下载链接"`
+	ThumbnailUrl    string      `json:"thumbnail_url,omitempty" dc:"缩略图链接"`
+}
+
 // GetFileInfoRes 获取文件信息响应结构
 type GetFileInfoRes struct {
 	Id              int64       `json:"id" dc:"文件ID"`

@@ -6,7 +6,7 @@ import (
 
 // GetSentenceReq 获取每日一句请求结构
 type GetSentenceReq struct {
-	g.Meta `path:"/daily/sentence" tags:"Daily" method:"get" summary:"Get daily sentence from iciba"`
+	g.Meta `path:"/daily/sentence" tags:"Daily" method:"get" summary:"Get daily sentence from iciba" noAuth:"true"`
 }
 
 // GetSentenceRes 每日一句响应结构

@@ -337,6 +337,78 @@ deploy/
 - **配置说明**: 后端已添加CORS中间件，支持前端跨域请求
 - **实现位置**: `server/internal/cmd/cmd.go`
 
+### 认证功能（已完成）
+- **功能描述**：单用户密码登录，后端签发 JWT（HS256），支持令牌过期与统一失效；前端登录后自动持久化令牌并对受保护页面做重定向。
+- **API 接口**：
+  - `POST /auth/login`（公共接口，无需登录）：入参 `password`，非生产环境可选 `ttl`（秒，范围 1~7200）用于测试令牌过期；返回 `{ token, expiresAt }`。
+  - `GET /auth/me`（需登录）：携带 `Authorization: Bearer <token>` 返回当前用户信息 `{ user: { username, roles } }`。
+- **后端关键文件**：
+  - 登录控制器：`server/internal/controller/auth/auth_v1_login.go`
+  - 用户信息：`server/internal/controller/auth/auth_v1_me.go`
+  - JWT 生成/校验：`server/internal/service/auth/jwt.go`（校验签名、`exp`、`iat` 与 `password_updated_at` 统一失效）
+  - 统一响应中间件：`ghttp.MiddlewareHandlerResponse`（在 `server/internal/cmd/cmd.go` 的路由组中应用）
+- **前端关键文件**：
+  - 登录页面：`front-web/src/app/login/page.tsx`
+  - Token 管理：`front-web/src/lib/token.ts`（localStorage + Cookie，带过期时间）
+  - BFF 代理：`front-web/src/app/api/auth/login/route.ts`（转发 `password` 与 `ttl` 至后端）
+  - E2E 测试：`front-web/tests/e2e/auth.spec.ts`（验证受保护页面重定向、登录成功、/auth/me、TTL 过期重定向、公共接口可访问）
+- **动态配置要求**：
+  - `core/dev/keyPassword`：登录口令（当前阶段存明文，后续建议改为哈希与专用字段）。
+  - `auth/<env>/jwt_secret`：JWT 签名密钥（必填）。
+  - `auth/<env>/password_updated_at`：密码更新时间（Unix 秒）；登录成功时若未初始化会自动写入并重建缓存。
+- **联调与环境**：
+  - `app.env` 不为 `prod` 时，`/auth/login` 支持 `ttl` 入参以便测试短期过期；生产环境忽略 `ttl`。
+  - 接口返回均为统一结构 `{ code, message, data }`；前端按该格式解析。
+  - 公共接口（无需登录）：`/daily/sentence`、`/logs/visit`（API g.Meta 标注 `noAuth:"true"`）。
+
+#### URL Token 生成功能（已完成）
+- **功能描述**：为开发调试和自动化测试场景提供URL Token生成功能，生成包含认证信息的一次性登录链接。
+- **API 接口**：
+  - `POST /auth/generate-url-token`（需登录）：生成URL Token，返回 `{ token, expiresAt, loginUrl }`。
+  - Token 有效期：24小时（86400秒）
+  - 登录URL格式：`http://localhost:3000/login?token=<generated_token>`
+- **后端实现**：
+  - 控制器：`server/internal/controller/auth/auth_v1_generate_url_token.go`
+  - API定义：`server/api/auth/v1/auth.go` 中的 `GenerateUrlTokenReq/Res`
+  - JWT生成：复用现有的JWT服务，设置24小时过期时间
+- **前端实现**：
+  - 管理页面：`front-web/src/app/admin/url-token/page.tsx`
+  - 登录页面：`front-web/src/app/login/page.tsx`（支持URL Token自动登录）
+  - 功能特性：
+    - 一键生成URL Token
+    - 显示Token、过期时间和登录URL
+    - 复制Token到剪贴板
+    - 直接打开登录URL测试
+    - 时间戳正确显示（已修复前端时间转换问题）
+    - URL Token自动登录（已修复Authorization头部问题）
+- **使用场景**：
+  - 开发调试：快速生成测试用的登录链接
+  - 自动化测试：CI/CD流程中的自动登录
+  - 跨设备登录：通过二维码或链接在其他设备登录
+  - API测试：在浏览器中直接测试需要认证的接口
+- **安全考虑**：
+  - Token具有明确的过期时间（24小时）
+  - 生成Token需要已登录状态
+  - Token遵循JWT标准，包含完整的认证信息
+  - 建议仅在开发和测试环境使用
+- **问题修复记录**：
+  - **URL Token登录问题**（2025-01-27修复）：修复了前端登录页面中fetch请求缺少Authorization头部的问题
+    - 问题：登录页面使用fetch直接调用`/api/auth/me`验证token时，没有添加Authorization头部
+    - 原因：登录页面没有使用alova HTTP客户端，而是直接使用fetch，导致自动添加Authorization头部的拦截器不生效
+    - 解决：在`validateTokenAndRedirect`函数中手动添加`Authorization: Bearer ${token}`头部
+    - 影响：修复后URL Token登录功能正常工作，可以正确跳转到目标页面
+
+#### URL 登录（开发调试说明）
+- **用途**：用于快速联调或自动化测试场景，通过 URL 参数直接触发登录。
+- **当前实现**：登录通过 BFF 端点 `POST /api/auth/login`（JSON 或 `x-www-form-urlencoded`）完成；前端登录页支持 `next` 查询参数控制登录后的跳转（示例：`/login?next=/admin/config/manage`）。
+- **URL Token登录**：支持通过URL参数 `?token=xxx` 进行自动登录，Token由URL Token生成功能提供。
+- **稳定性优化**：URL Token生成接口已实现超时控制（5秒）和重试机制（最多2次），有效解决间歇性502错误问题。
+- **可选扩展（推荐仅在非生产启用）**：
+  - 提供 `GET /api/auth/login?password=xxx&ttl=3` 的方式，用于本地/CI 快速登录并返回 `{ code, message, data: { token, expiresAt } }`。
+  - 安全风险：密码出现在浏览器历史、日志与代理层可见的 URL；因此不建议在生产环境启用 GET 登录。
+  - 启用方法：在 `front-web/src/app/api/auth/login/route.ts` 中新增 `export async function GET(req: NextRequest)`，读取 `req.nextUrl.searchParams` 的 `password/ttl` 并复用现有 POST 逻辑；仅在 `process.env.NEXT_PUBLIC_APP_ENV !== 'prod'` 时有效。
+  - 建议：如需在生产环境使用 URL 登录，请务必改为一次性签名参数并通过短时有效的安全通道完成，不要直接传递明文密码。
+
 后续 TODO（文档与代码协同）
 - 在 docs/api/ 中补充接口契约草稿（OpenAPI），与后端 internal/api/openapi.yaml 对齐。
 - 在 docs/execute/ 增加本地开发一键启动说明（Docker Compose 与脚本），以及联调步骤。

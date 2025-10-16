@@ -12,6 +12,21 @@ type Props = {
 };
 
 export default function ClientProvider({ children }: Props) {
+  // URL token 静默登录：读取 ?token=...，持久化到 localStorage，并清理地址栏参数
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const url = new URL(window.location.href);
+      const token = url.searchParams.get("token");
+      if (token) {
+        localStorage.setItem("token", token);
+        url.searchParams.delete("token");
+        // 保留 next，但不自动跳转，交给业务自行处理
+        window.history.replaceState(null, "", url.toString());
+      }
+    } catch {}
+  }, []);
+
   return (
     <ConfigProvider>
       <ColorProvider>

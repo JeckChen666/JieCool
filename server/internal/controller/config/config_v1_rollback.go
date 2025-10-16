@@ -13,6 +13,12 @@ import (
 )
 
 func (c *ControllerV1) Rollback(ctx context.Context, req *v1.RollbackReq) (res *v1.RollbackRes, err error) {
+	// 仅管理员可执行
+	r := g.RequestFromCtx(ctx)
+	subj := r.GetCtxVar("auth.subject").String()
+	if subj == "" || subj != "admin" {
+		return nil, gerror.New("forbidden")
+	}
 	// 获取目标版本
 	target, err := g.DB().Ctx(ctx).Model("dynamic_config_versions").Where(g.Map{
 		"namespace": req.Namespace,

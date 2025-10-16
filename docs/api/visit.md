@@ -6,16 +6,18 @@
 - 路径：`POST /logs/visit`
 - Tags：`Visit`
 - 摘要：Record a visit of home page
+- 鉴权：无需登录（noAuth: true）
 
 请求：
 - Body：无（由服务端从请求上下文自动获取）；前端会在首页加载时自动上报最小负载：
   - 示例：`{ "path": "/", "ts": 1710000000000 }`
   - 说明：服务端不依赖该 Body 获取核心信息，主要从请求上下文读取 IP/Headers/Method/Path。
 
-响应：
+响应（统一响应包装）：
 ```json
 {
-  "status": "ok",
+  "code": 0,
+  "message": "OK",
   "data": {
     "time": "2025-10-05T12:34:56.789Z",
     "ip": "127.0.0.1",
@@ -54,10 +56,10 @@ curl -X POST \
 ```
 
 相关代码位置：
-- API 定义：`server/api/visit/v1/visit.go`
+- API 定义：`server/api/visit/v1/visit.go`（g.Meta 标注 `noAuth:"true"`）
 - 控制器：`server/internal/controller/visit/visit_v1_create.go`
 - 服务层：`server/internal/service/visit.go`
-- 路由绑定：`server/internal/cmd/cmd.go`（在路由组中绑定 `visit.NewV1()`）
+- 路由绑定：`server/internal/cmd/cmd.go`（应用 `ghttp.MiddlewareHandlerResponse` 统一响应包装）
 
 注意事项：
 - IP 获取使用框架提供的远端 IP 方法，避免被 Header 伪造；当无法获取时字段为空。

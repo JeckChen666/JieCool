@@ -1,5 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { getToken } from "@/lib/token";
 import {
   Table,
   Form,
@@ -40,6 +42,7 @@ const typeOptions = [
 ];
 
 export default function ConfigManagePage() {
+  const router = useRouter();
   const [filters, setFilters] = useState({
     namespace: "",
     env: "",
@@ -78,7 +81,11 @@ export default function ConfigManagePage() {
   const fetchList = async () => {
     setLoading(true);
     try {
-      const resp = await fetch(`/api/config/list?${queryString}`, { cache: "no-store" });
+      const token = getToken();
+      const resp = await fetch(`/api/config/list?${queryString}`, {
+        cache: "no-store",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       const data = await resp.json();
       setItems(data.items || []);
       setTotal(data.total || 0);
@@ -141,7 +148,11 @@ export default function ConfigManagePage() {
         page: "1",
         size: "20",
       });
-      const resp = await fetch(`/api/config/versions?${params.toString()}`, { cache: "no-store" });
+      const token = getToken();
+      const resp = await fetch(`/api/config/versions?${params.toString()}`, {
+        cache: "no-store",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       const data = await resp.json();
       setVersionsItems(data.items || []);
     } catch (e) {
@@ -192,9 +203,13 @@ export default function ConfigManagePage() {
         change_reason: values.change_reason || "frontend-create",
       };
       setCreateLoading(true);
+      const token = getToken();
       const resp = await fetch("/api/config/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(payload),
       });
       const data = await resp.json();
@@ -228,9 +243,13 @@ export default function ConfigManagePage() {
         change_reason: values.change_reason || "frontend-update",
       };
       setEditLoading(true);
+      const token = getToken();
       const resp = await fetch("/api/config/update", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(payload),
       });
       const data = await resp.json();
@@ -263,9 +282,13 @@ export default function ConfigManagePage() {
             version: row.version,
             change_reason: "frontend-delete",
           };
+          const token = getToken();
           const resp = await fetch("/api/config/delete", {
             method: "DELETE",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
             body: JSON.stringify(payload),
           });
           const data = await resp.json();
@@ -292,9 +315,13 @@ export default function ConfigManagePage() {
         to_version: toVersion,
         change_reason: "frontend-rollback",
       };
+      const token = getToken();
       const resp = await fetch("/api/config/rollback", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(payload),
       });
       const data = await resp.json();
@@ -344,6 +371,37 @@ export default function ConfigManagePage() {
       ),
     },
   ];
+
+  // 路由守卫：进入页面时校验登录态
+  useEffect(() => {
+    let canceled = false;
+    (async () => {
+      try {
+        const token = getToken();
+        const resp = await fetch("/api/auth/me", {
+          cache: "no-store",
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
+        if (resp.status === 401) {
+          const next = encodeURIComponent(`/admin/config/manage`);
+          if (!canceled) router.push(`/login?next=${next}`);
+          return;
+        }
+        const data = await resp.json();
+        const user = data?.user;
+        if (!user && !canceled) {
+          const next = encodeURIComponent(`/admin/config/manage`);
+          router.push(`/login?next=${next}`);
+        }
+      } catch (e) {
+        const next = encodeURIComponent(`/admin/config/manage`);
+        if (!canceled) router.push(`/login?next=${next}`);
+      }
+    })();
+    return () => {
+      canceled = true;
+    };
+  }, [router]);
 
   return (
     <div style={{ padding: 24 }}>
@@ -413,7 +471,6 @@ export default function ConfigManagePage() {
               setPage(1);
             },
             showJumper: true,
-            showPageSize: true,
           }}
           rowKey={(row) => `${row.namespace}:${row.env}:${row.key}`}
         />

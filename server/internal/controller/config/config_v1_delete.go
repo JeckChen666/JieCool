@@ -13,6 +13,12 @@ import (
 )
 
 func (c *ControllerV1) Delete(ctx context.Context, req *v1.DeleteReq) (res *v1.DeleteRes, err error) {
+	// 仅管理员可执行
+	r := g.RequestFromCtx(ctx)
+	subj := r.GetCtxVar("auth.subject").String()
+	if subj == "" || subj != "admin" {
+		return nil, gerror.New("forbidden")
+	}
 	// 软删除：enabled=false 并版本+1
 	cur, err := g.DB().Ctx(ctx).Model("dynamic_configs").Where(g.Map{
 		"namespace": req.Namespace,

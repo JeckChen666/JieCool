@@ -95,7 +95,7 @@ export default function FileManagement() {
       download_count: file.download_count,
       file_status: 1, // FileListItem中没有此字段，默认为正常状态
       has_thumbnail: file.has_thumbnail,
-      thumbnail_path: file.thumbnail_url,
+      thumbnail_url: file.thumbnail_url,
       created_at: file.created_at,
       updated_at: file.created_at // FileListItem中没有updated_at，使用created_at
     };

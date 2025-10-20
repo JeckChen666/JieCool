@@ -33,6 +33,7 @@ var (
 			s.Use(middleware.MiddlewareJWT)
 			s.Group("/", func(group *ghttp.RouterGroup) {
 				group.Middleware(ghttp.MiddlewareHandlerResponse)
+				group.Middleware(middleware.AccessLog)
 				group.Middleware(ghttp.MiddlewareCORS)
 				group.Bind(
 					auth.NewV1(),

@@ -5,7 +5,7 @@ import { getServerUrl } from "../../../../lib/serverUrl";
 export async function POST(req: Request) {
   const serverUrl = getServerUrl();
   const url = `${serverUrl}/auth/generate-url-token`;
-  
+  console.log("Generate URL token request:", url);
   try {
     // 获取Authorization header
     const authorization = req.headers.get("authorization");

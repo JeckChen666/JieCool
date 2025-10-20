@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"server/internal/logic/utils"
 
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
@@ -9,7 +10,6 @@ import (
 	"github.com/gogf/gf/v2/os/gtime"
 
 	v1 "server/api/config/v1"
-	"server/internal/logic/configutil"
 	"server/internal/service/configcache"
 )
 
@@ -25,7 +25,7 @@ func (c *ControllerV1) Import(ctx context.Context, req *v1.ImportReq) (res *v1.I
 	err = g.DB().Ctx(ctx).Transaction(ctx, func(txCtx context.Context, tx gdb.TX) error {
 		for _, it := range req.Items {
 			// 为每个条目规范化 JSON 值
-			normalized, nErr := configutil.NormalizeJSONValue(it.Type, it.Value)
+			normalized, nErr := utils.NormalizeJSONValue(it.Type, it.Value)
 			if nErr != nil {
 				return nErr
 			}

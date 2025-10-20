@@ -2,13 +2,13 @@ package config
 
 import (
 	"context"
+	"server/internal/logic/utils"
 
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 
 	v1 "server/api/config/v1"
-	"server/internal/logic/configutil"
 	"server/internal/service/configcache"
 )
 
@@ -33,7 +33,7 @@ func (c *ControllerV1) Create(ctx context.Context, req *v1.CreateReq) (res *v1.C
 	}
 
 	// 规范化 value 为合法 JSON 文本，避免 JSONB 语法错误
-	normalized, err := configutil.NormalizeJSONValue(req.Type, req.Value)
+	normalized, err := utils.NormalizeJSONValue(req.Type, req.Value)
 	if err != nil {
 		return nil, err
 	}

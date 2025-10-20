@@ -21,13 +21,15 @@ export interface FileInfo {
   /** 是否有缩略图 */
   has_thumbnail: boolean;
   /** 缩略图路径 */
-  thumbnail_path?: string;
+  thumbnail_url?: string;
   /** 文件MD5哈希值 */
   file_md5?: string;
   /** 创建时间 */
   created_at: string;
   /** 更新时间 */
   updated_at: string;
+  /** 文件下载URL */
+  download_url: string;
 }
 
 export interface FileListItem {

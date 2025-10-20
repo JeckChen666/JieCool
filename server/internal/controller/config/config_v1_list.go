@@ -1,12 +1,12 @@
 package config
 
 import (
-    "context"
+	"context"
+	"server/internal/logic/utils"
 
-    "github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/frame/g"
 
-    v1 "server/api/config/v1"
-    "server/internal/logic/configutil"
+	v1 "server/api/config/v1"
 )
 
 func (c *ControllerV1) List(ctx context.Context, req *v1.ListReq) (res *v1.ListRes, err error) {
@@ -48,23 +48,23 @@ func (c *ControllerV1) List(ctx context.Context, req *v1.ListReq) (res *v1.ListR
 		return nil, err
 	}
 
-    items := make([]v1.ConfigItem, 0, len(rows))
-    for _, r := range rows {
-        // Decode JSON text from DB into proper Go value for API response
-        valueDecoded := configutil.DecodeJSONText(r["value"].String())
-        items = append(items, v1.ConfigItem{
-            Namespace:   r["namespace"].String(),
-            Env:         r["env"].String(),
-            Key:         r["key"].String(),
-            Type:        r["type"].String(),
-            Value:       valueDecoded,
-            Enabled:     r["enabled"].Bool(),
-            Version:     int(r["version"].Int()),
-            Description: r["description"].String(),
-            UpdatedBy:   r["updated_by"].String(),
-            UpdatedAt:   r["updated_at"].String(),
-        })
-    }
+	items := make([]v1.ConfigItem, 0, len(rows))
+	for _, r := range rows {
+		// Decode JSON text from DB into proper Go value for API response
+		valueDecoded := utils.DecodeJSONText(r["value"].String())
+		items = append(items, v1.ConfigItem{
+			Namespace:   r["namespace"].String(),
+			Env:         r["env"].String(),
+			Key:         r["key"].String(),
+			Type:        r["type"].String(),
+			Value:       valueDecoded,
+			Enabled:     r["enabled"].Bool(),
+			Version:     int(r["version"].Int()),
+			Description: r["description"].String(),
+			UpdatedBy:   r["updated_by"].String(),
+			UpdatedAt:   r["updated_at"].String(),
+		})
+	}
 
 	return &v1.ListRes{Items: items, Total: total}, nil
 }

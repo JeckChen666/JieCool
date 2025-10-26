@@ -289,8 +289,9 @@ export const fileApi = {
    * @param fileUuid 文件UUID
    */
   getDownloadUrl: (fileUuid: string) => {
-    // 返回相对路径，交由 Next.js rewrites 代理到后端
-    return `/api/v1/file/download/${fileUuid}`;
+    // 直接返回后端URL
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8080";
+    return `${baseUrl}/file/download/${fileUuid}`;
   },
 
   /**
@@ -298,8 +299,9 @@ export const fileApi = {
    * @param fileUuid 文件UUID
    */
   getThumbnailUrl: (fileUuid: string) => {
-    // 返回相对路径，交由 Next.js rewrites 代理到后端
-    return `/api/v1/file/thumbnail/${fileUuid}`;
+    // 直接返回后端URL
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8080";
+    return `${baseUrl}/file/thumbnail/${fileUuid}`;
   }
 };
 

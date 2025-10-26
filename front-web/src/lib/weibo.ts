@@ -1,3 +1,5 @@
+import { alova } from './alova';
+
 export type AssetInput = {
   fileId: number;
   kind: 'image' | 'attachment';
@@ -16,76 +18,82 @@ export type WeiboItem = {
   assets: { fileId: number; kind: string }[];
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8080';
+// API接口函数
+export const weiboApi = {
+  /**
+   * 获取微博列表
+   * @param params 查询参数
+   */
+  listPosts: (params: { page?: number; size?: number; visibility?: 'public' | 'private' } = {}) => {
+    return alova.Get<{ page: number; size: number; total: number; list: WeiboItem[] }>('/weibo/posts', {
+      params
+    });
+  },
 
-async function request<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init?.headers || {}),
-    },
-    credentials: 'omit',
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`HTTP ${res.status}: ${text}`);
+  /**
+   * 创建微博
+   * @param data 微博数据
+   */
+  createPost: (data: { content: string; visibility?: 'public' | 'private'; assets?: AssetInput[]; lat?: number; lng?: number; city?: string; device?: string }) => {
+    return alova.Post<{ id: number; createdAt: string }>('/weibo/posts', data);
+  },
+
+  /**
+   * 更新微博
+   * @param data 微博数据
+   */
+  updatePost: (data: { id: number; content?: string; visibility?: 'public' | 'private'; assets?: AssetInput[]; lat?: number; lng?: number; city?: string; device?: string }) => {
+    return alova.Put<{ updated: boolean; snapshotVersion: number }>('/weibo/posts/update', data);
+  },
+
+  /**
+   * 获取微博详情
+   * @param id 微博ID
+   */
+  getDetail: (id: number) => {
+    return alova.Get<{ id: number; content: string; visibility: string; createdAt: string; updatedAt: string; city?: string; lat?: number | null; lng?: number | null; device?: string; assets: { fileId: number; kind: string }[] }>('/weibo/posts/detail', {
+      params: { id: String(id) }
+    });
+  },
+
+  /**
+   * 获取微博快照列表
+   * @param postId 微博ID
+   * @param page 页码
+   * @param size 每页数量
+   */
+  getSnapshots: (postId: number, page = 1, size = 10) => {
+    return alova.Get<{ page: number; size: number; total: number; items: { id: number; version: number; createdAt: string; visibility: string }[] }>('/weibo/posts/snapshots', {
+      params: { postId: String(postId), page: String(page), size: String(size) }
+    });
+  },
+
+  /**
+   * 获取微博快照详情
+   * @param id 快照ID
+   */
+  getSnapshot: (id: number) => {
+    return alova.Get<{ id: number; version: number; createdAt: string; visibility: string; content: string; assets: { fileId: number; kind: string }[] }>('/weibo/snapshot', {
+      params: { id: String(id) }
+    });
+  },
+
+  /**
+   * 删除微博
+   * @param id 微博ID
+   */
+  deletePost: (id: number) => {
+    return alova.Delete<{ ok: boolean }>('/weibo/posts/delete', {
+      id: String(id)
+    });
   }
-  const json = await res.json();
-  // Unwrap GoFrame-style envelope { code, message, data }
-  if (json && typeof json === 'object' && 'code' in json) {
-    const code = (json as any).code;
-    const message = (json as any).message || 'Error';
-    if (code !== 0) {
-      throw new Error(message);
-    }
-    return (json as any).data as T;
-  }
-  return json as T;
-}
+};
 
-export async function listPosts(params: { page?: number; size?: number; visibility?: 'public' | 'private' } = {}) {
-  const usp = new URLSearchParams();
-  if (params.page) usp.set('page', String(params.page));
-  if (params.size) usp.set('size', String(params.size));
-  if (params.visibility) usp.set('visibility', params.visibility);
-  return request<{ page: number; size: number; total: number; list: WeiboItem[] }>(`${API_BASE}/weibo/posts?${usp.toString()}`);
-}
-
-export async function createPost(data: { content: string; visibility?: 'public' | 'private'; assets?: AssetInput[]; lat?: number; lng?: number; city?: string; device?: string }) {
-  return request<{ id: number; createdAt: string }>(`${API_BASE}/weibo/posts`, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function updatePost(data: { id: number; content?: string; visibility?: 'public' | 'private'; assets?: AssetInput[]; lat?: number; lng?: number; city?: string; device?: string }) {
-  return request<{ updated: boolean; snapshotVersion: number }>(`${API_BASE}/weibo/posts/update`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function getDetail(id: number) {
-  const usp = new URLSearchParams({ id: String(id) });
-  return request<{ id: number; content: string; visibility: string; createdAt: string; updatedAt: string; city?: string; lat?: number | null; lng?: number | null; device?: string; assets: { fileId: number; kind: string }[] }>(
-    `${API_BASE}/weibo/posts/detail?${usp.toString()}`
-  );
-}
-
-export async function getSnapshots(postId: number, page = 1, size = 10) {
-  const usp = new URLSearchParams({ postId: String(postId), page: String(page), size: String(size) });
-  return request<{ page: number; size: number; total: number; items: { id: number; version: number; createdAt: string; visibility: string }[] }>(`${API_BASE}/weibo/posts/snapshots?${usp.toString()}`);
-}
-
-export async function getSnapshot(id: number) {
-  const usp = new URLSearchParams({ id: String(id) });
-  return request<{ id: number; version: number; createdAt: string; visibility: string; content: string; assets: { fileId: number; kind: string }[] }>(`${API_BASE}/weibo/snapshot?${usp.toString()}`);
-}
-
-export async function deletePost(id: number) {
-  return request<{ ok: boolean }>(`${API_BASE}/weibo/posts/delete`, {
-    method: 'DELETE',
-    body: JSON.stringify({ id }),
-  });
-}
+// 为了向后兼容，导出原有的函数
+export const listPosts = weiboApi.listPosts;
+export const createPost = weiboApi.createPost;
+export const updatePost = weiboApi.updatePost;
+export const getDetail = weiboApi.getDetail;
+export const getSnapshots = weiboApi.getSnapshots;
+export const getSnapshot = weiboApi.getSnapshot;
+export const deletePost = weiboApi.deletePost;

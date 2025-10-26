@@ -65,7 +65,7 @@ export const authApi = {
      * @param data 登录请求参数
      */
     login: (data: LoginRequest) => {
-        return alova.Post<LoginResponse>('/api/auth/login', data);
+        return alova.Post<LoginResponse>('/auth/login', data);
     },
 
     /**
@@ -73,7 +73,7 @@ export const authApi = {
      * 需要认证：自动从alova拦截器中添加Authorization头
      */
     me: () => {
-        return alova.Get<MeResponse>('/api/auth/me');
+        return alova.Get<MeResponse>('/auth/me');
     },
 
     /**
@@ -81,7 +81,7 @@ export const authApi = {
      * 需要认证：自动从alova拦截器中添加Authorization头
      */
     logout: () => {
-        return alova.Post<LogoutResponse>('/api/auth/logout');
+        return alova.Post<LogoutResponse>('/auth/logout');
     },
 
     /**
@@ -90,6 +90,6 @@ export const authApi = {
      * @param data 生成URL Token请求参数
      */
     generateUrlToken: (data?: GenerateUrlTokenRequest) => {
-        return alova.Post<GenerateUrlTokenResponse>('/api/auth/generate-url-token', data || {});
+        return alova.Post<GenerateUrlTokenResponse>('/auth/generate-url-token', data || {});
     },
 };

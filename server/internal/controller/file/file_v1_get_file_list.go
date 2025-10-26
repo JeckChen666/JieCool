@@ -17,7 +17,7 @@ func (c *ControllerV1) GetFileList(ctx context.Context, req *v1.GetFileListReq) 
 	if page <= 0 {
 		page = 1
 	}
-	
+
 	pageSize := req.PageSize
 	if pageSize <= 0 {
 		pageSize = 20
@@ -47,19 +47,19 @@ func (c *ControllerV1) GetFileList(ctx context.Context, req *v1.GetFileListReq) 
 			HasThumbnail:  file.HasThumbnail,
 			DownloadCount: file.DownloadCount,
 			CreatedAt:     file.CreatedAt.String(),
-			DownloadUrl:   fmt.Sprintf("/api/v1/file/download/%s", file.FileUuid),
+			DownloadUrl:   fmt.Sprintf("/file/download/%s", file.FileUuid),
 		}
-		
+
 		// 处理最后下载时间
 		if file.LastDownloadAt != nil {
 			fileItem.LastDownloadAt = file.LastDownloadAt.String()
 		}
-		
+
 		// 处理缩略图
 		if file.HasThumbnail {
-			fileItem.ThumbnailUrl = fmt.Sprintf("/api/v1/file/thumbnail/%s", file.FileUuid)
+			fileItem.ThumbnailUrl = fmt.Sprintf("/file/thumbnail/%s", file.FileUuid)
 		}
-		
+
 		fileList = append(fileList, fileItem)
 	}
 

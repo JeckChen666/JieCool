@@ -11,6 +11,7 @@ import (
 
 func (c *ControllerV1) List(ctx context.Context, req *v1.ListReq) (res *v1.ListRes, err error) {
 	// 构建查询
+	g.Log().Debug(ctx, "List request:", req)
 	m := g.DB().Ctx(ctx).Model("dynamic_configs")
 	if req.Namespace != "" {
 		m = m.Where("namespace", req.Namespace)

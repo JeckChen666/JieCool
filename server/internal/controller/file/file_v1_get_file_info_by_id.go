@@ -45,10 +45,10 @@ func (c *ControllerV1) GetFileInfoByID(ctx context.Context, req *v1.GetFileInfoB
 			}
 			return ""
 		}(),
-		DownloadUrl: fmt.Sprintf("/api/v1/file/download/%s", fileEntity.FileUuid),
+		DownloadUrl: fmt.Sprintf("/file/download/%s", fileEntity.FileUuid),
 	}
 	if fileEntity.HasThumbnail {
-		res.ThumbnailUrl = fmt.Sprintf("/api/v1/file/thumbnail/%s", fileEntity.FileUuid)
+		res.ThumbnailUrl = fmt.Sprintf("/file/thumbnail/%s", fileEntity.FileUuid)
 	}
 	return res, nil
 }

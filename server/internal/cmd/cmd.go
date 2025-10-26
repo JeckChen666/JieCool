@@ -29,12 +29,12 @@ var (
 			if _, err := configcache.PreloadAll(ctx); err != nil {
 				g.Log().Warning(ctx, "ConfigCache preload failed, continue to start server:", err)
 			}
-			// 全局 JWT 中间件：未标注 noAuth 的接口均需鉴权
-			s.Use(middleware.MiddlewareJWT)
+			s.Use(ghttp.MiddlewareCORS)
 			s.Group("/", func(group *ghttp.RouterGroup) {
+				//group.Middleware(ghttp.MiddlewareCORS)
 				group.Middleware(ghttp.MiddlewareHandlerResponse)
 				group.Middleware(middleware.AccessLog)
-				group.Middleware(ghttp.MiddlewareCORS)
+				group.Middleware(middleware.MiddlewareJWT)
 				group.Bind(
 					auth.NewV1(),
 					config.NewV1(),

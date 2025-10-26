@@ -4,6 +4,7 @@ import React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Form, Input, Button, Space, Card, Message, Typography } from "@arco-design/web-react";
 import { setToken } from "@/lib/token";
+import { authApi, type LoginRequest } from "@/lib/auth-api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,29 +22,20 @@ export default function LoginPage() {
     try {
       // 先存储token
       setToken(token);
+      console.log('token', token)
+      // 使用auth-api验证token有效性
+      await authApi.me();
       
-      // 验证token有效性，手动添加Authorization头部
-      const response = await fetch('/api/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (response.ok) {
-        // Token 有效，跳转到目标页面
-        console.log('URL Token 登录成功');
-        Message.success('URL Token 登录成功');
-        const next = params.get("next") || "/admin/config/manage";
-        router.push(next);
-      } else {
-        // Token 无效，清除并显示错误
-        localStorage.removeItem('token');
-        setError('Token 无效或已过期，请重新登录');
-        Message.error('Token 无效或已过期，请重新登录');
-      }
+      // Token 有效，跳转到目标页面
+      console.log('URL Token 登录成功');
+      Message.success('URL Token 登录成功');
+      const next = params.get("next") || "/admin/config/manage";
+      router.push(next);
     } catch (error) {
+      // Token 无效，清除并显示错误
       localStorage.removeItem('token');
-      setError('Token 验证失败，请重新登录');
-      Message.error('Token 验证失败，请重新登录');
+      setError('Token 无效或已过期，请重新登录');
+      Message.error('Token 无效或已过期，请重新登录');
     }
   };
 
@@ -77,28 +69,29 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      const resp = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: values.password }),
-      });
-      const data = await resp.json();
-      if (resp.status === 401) {
-        throw new Error(data?.message || "未授权");
-      }
-      const token = data?.token;
-      const expiresAt = data?.expiresAt;
+      // 构造登录请求参数
+      const loginRequest: LoginRequest = {
+        password: values.password
+      };
+      
+      // 使用auth-api进行登录
+      const response = await authApi.login(loginRequest);
+      console.log(response)
+      const { token, expiresAt } = response;
+      
       if (!token) {
-        throw new Error(data?.message || "登录失败");
+        throw new Error("登录失败：未获取到有效令牌");
       }
+      
       // 同步存储到 localStorage 与 Cookie
       setToken(token, typeof expiresAt === "number" ? expiresAt : undefined);
       Message.success("登录成功");
       const next = params.get("next") || "/admin/config/manage";
       router.push(next);
     } catch (e: any) {
-      setError(e?.message || "登录失败");
-      Message.error(e?.message || "登录失败");
+      const errorMessage = e?.response?.data?.message || e?.message || "登录失败";
+      setError(errorMessage);
+      Message.error(errorMessage);
     } finally {
       setLoading(false);
     }

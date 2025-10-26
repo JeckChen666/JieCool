@@ -28,7 +28,7 @@ func (c *ControllerV1) UploadFile(ctx context.Context, req *v1.UploadFileReq) (r
 	// 获取上传者信息
 	uploaderIP := r.GetClientIp()
 	userAgent := r.Header.Get("User-Agent")
-	
+
 	// 如果没有指定分类，使用默认分类
 	category := req.Category
 	if category == "" {
@@ -48,14 +48,14 @@ func (c *ControllerV1) UploadFile(ctx context.Context, req *v1.UploadFileReq) (r
 		FileSize:      fileEntity.FileSize,
 		FileExtension: fileEntity.FileExtension,
 		MimeType:      fileEntity.MimeType,
-		FileMd5:       fileEntity.FileMd5,  // 添加MD5哈希值
+		FileMd5:       fileEntity.FileMd5,
 		HasThumbnail:  fileEntity.HasThumbnail,
-		DownloadUrl:   fmt.Sprintf("/api/v1/file/download/%s", fileEntity.FileUuid),
+		DownloadUrl:   fmt.Sprintf("/file/download/%s", fileEntity.FileUuid),
 	}
 
 	// 如果有缩略图，添加缩略图URL
 	if fileEntity.HasThumbnail {
-		res.ThumbnailUrl = fmt.Sprintf("/api/v1/file/thumbnail/%s", fileEntity.FileUuid)
+		res.ThumbnailUrl = fmt.Sprintf("/file/thumbnail/%s", fileEntity.FileUuid)
 	}
 
 	return res, nil

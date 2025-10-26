@@ -17,6 +17,7 @@ function getTitleFromPath(pathname: string) {
         "/file-management": "文件管理",
         "/admin/config": "配置管理",
         "/admin/url-token": "URL Token管理",
+        "/weibo": "weibo",
     };
     return map[pathname] || "页面";
 }
@@ -114,10 +115,10 @@ export default function Navbar() {
                     ariaLabel="Jump to"
                     options={[
                         {label: "首页", value: "/"},
+                        {label: "微博", value: "/weibo"},
                         ...(isLoggedIn ? [
                             {label: "文件管理", value: "/file-management"},
                             {label: "配置管理", value: "/admin/config"},
-                            {label: '动态配置管理', value: '/admin/config/manage'},
                             {label: "URL Token", value: "/admin/url-token"}
                         ] : [{label: "登录", value: "/login"}])
                     ]}

@@ -38,7 +38,7 @@ func (c *ControllerV1) GetFileInfo(ctx context.Context, req *v1.GetFileInfoReq) 
 		FileStatus:    fileEntity.FileStatus,
 		CreatedAt:     fileEntity.CreatedAt.String(),
 		UpdatedAt:     fileEntity.UpdatedAt.String(),
-		DownloadUrl:   fmt.Sprintf("/api/v1/file/download/%s", fileEntity.FileUuid),
+		DownloadUrl:   fmt.Sprintf("/file/download/%s", fileEntity.FileUuid),
 	}
 
 	// 处理最后下载时间
@@ -48,7 +48,7 @@ func (c *ControllerV1) GetFileInfo(ctx context.Context, req *v1.GetFileInfoReq) 
 
 	// 处理缩略图
 	if fileEntity.HasThumbnail {
-		res.ThumbnailUrl = fmt.Sprintf("/api/v1/file/thumbnail/%s", fileEntity.FileUuid)
+		res.ThumbnailUrl = fmt.Sprintf("/file/thumbnail/%s", fileEntity.FileUuid)
 	}
 
 	return res, nil

@@ -27,7 +27,7 @@ type UploadFileRes struct {
 
 // DownloadFileReq 文件下载请求结构
 type DownloadFileReq struct {
-	g.Meta   `path:"/file/download/{file_uuid}" tags:"File" method:"get" summary:"Download file by UUID"`
+	g.Meta   `path:"/file/download/{file_uuid}" tags:"File" method:"get" summary:"Download file by UUID" noAuth:"true"`
 	FileUuid string `json:"file_uuid" v:"required#文件UUID不能为空" dc:"文件唯一标识符"`
 }
 
@@ -38,7 +38,7 @@ type DownloadFileRes struct {
 
 // GetThumbnailReq 获取缩略图请求结构
 type GetThumbnailReq struct {
-	g.Meta   `path:"/file/thumbnail/{file_uuid}" tags:"File" method:"get" summary:"Get file thumbnail by UUID"`
+	g.Meta   `path:"/file/thumbnail/{file_uuid}" tags:"File" method:"get" summary:"Get file thumbnail by UUID" noAuth:"true"`
 	FileUuid string `json:"file_uuid" v:"required#文件UUID不能为空" dc:"文件唯一标识符"`
 	Width    int    `json:"width" d:"200" dc:"缩略图宽度（可选，默认200）"`
 	Height   int    `json:"height" d:"200" dc:"缩略图高度（可选，默认200）"`
@@ -51,13 +51,13 @@ type GetThumbnailRes struct {
 
 // GetFileInfoReq 获取文件信息请求结构
 type GetFileInfoReq struct {
-	g.Meta   `path:"/file/info/{file_uuid}" tags:"File" method:"get" summary:"Get file information by UUID"`
+	g.Meta   `path:"/file/info/{file_uuid}" tags:"File" method:"get" summary:"Get file information by UUID" noAuth:"true"`
 	FileUuid string `json:"file_uuid" v:"required#文件UUID不能为空" dc:"文件唯一标识符"`
 }
 
 // GetFileInfoByIDReq 根据文件ID获取文件信息请求结构
 type GetFileInfoByIDReq struct {
-	g.Meta `path:"/file/info/by-id/{id}" tags:"File" method:"get" summary:"Get file information by ID"`
+	g.Meta `path:"/file/info/by-id/{id}" tags:"File" method:"get" summary:"Get file information by ID" noAuth:"true"`
 	Id     int64 `json:"id" v:"required|min:1#文件ID无效" dc:"文件ID（files.id）"`
 }
 

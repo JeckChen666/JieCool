@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__DesktopCommander__list_processes",
+      "mcp__DesktopCommander__start_process",
+      "mcp__windows-cli__execute_command",
+      "mcp__DesktopCommander__list_directory",
+      "mcp__DesktopCommander__read_multiple_files",
+      "mcp__DesktopCommander__edit_block",
+      "mcp__DesktopCommander__write_file",
+      "mcp__DesktopCommander__read_file",
+      "mcp__DesktopCommander__read_process_output"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

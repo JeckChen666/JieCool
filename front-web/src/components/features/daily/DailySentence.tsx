@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './DailySentence.module.css';
-import { useColor } from '@/contexts/ColorContext';
+import { useColor } from '@/components/contexts/ColorContext';
 
 // 每日一句数据类型
 interface DailySentenceData {

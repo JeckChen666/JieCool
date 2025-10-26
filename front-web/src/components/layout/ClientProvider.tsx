@@ -5,7 +5,7 @@
 // 因此通过客户端组件包裹，避免运行时错误并保留服务端布局的 metadata 能力。
 import React from "react";
 import { ConfigProvider } from "@arco-design/web-react";
-import { ColorProvider } from "@/contexts/ColorContext";
+import { ColorProvider } from "@/components/contexts/ColorContext";
 
 type Props = {
   children: React.ReactNode;

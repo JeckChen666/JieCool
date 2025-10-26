@@ -4,7 +4,7 @@ import "./globals.css";
 // 引入 Arco Design 全局样式，确保组件样式正确呈现
 import "@arco-design/web-react/dist/css/arco.css";
 // 使用 Client 组件包裹全局 Arco ConfigProvider，避免在 Server Component 中使用 React Context
-import ClientProvider from "@/components/ClientProvider";
+import ClientProvider from "@/components/layout/ClientProvider";
 import Navbar from "@/components/layout/Navbar";
 
 const inter = Inter({

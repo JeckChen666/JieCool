@@ -5,7 +5,7 @@ import {useEffect, useMemo, useState} from "react";
 import {usePathname, useRouter} from "next/navigation";
 import styles from "./Navbar.module.css";
 import Dropdown from "../ui/Dropdown";
-import {useColor} from "@/contexts/ColorContext";
+import {useColor} from "@/components/contexts/ColorContext";
 import {clearToken, getToken} from "@/lib/token";
 import {Message} from "@arco-design/web-react";
 

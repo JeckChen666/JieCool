@@ -230,14 +230,14 @@ export default function ConfigManagePage() {
             cancelText: "取消",
             onOk: async () => {
                 try {
-                    const payload = {
+                    const params: ConfigDeleteRequest = {
                         namespace: row.namespace,
                         env: row.env,
                         key: row.key,
                         version: row.version,
                         change_reason: "frontend-delete",
                     };
-                    const data = await configApi.delete(payload);
+                    const data = await configApi.delete(params);
                     if (data.ok) {
                         Message.success("删除成功");
                         fetchList();

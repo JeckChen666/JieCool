@@ -26,7 +26,7 @@ import (
 // IFile 文件服务接口
 type IFile interface {
 	// UploadFile 上传文件
-	UploadFile(ctx context.Context, file *multipart.FileHeader, category string, uploaderID int64, uploaderIP string, userAgent string) (*entity.Files, error)
+	UploadFile(ctx context.Context, file *multipart.FileHeader, category string, uploaderID int64, uploaderIP string, userAgent string, applicationName ...string) (*entity.Files, error)
 
 	// GetFileByUUID 根据UUID获取文件
 	GetFileByUUID(ctx context.Context, fileUUID string) (*entity.Files, error)
@@ -42,7 +42,7 @@ type IFile interface {
 	GetThumbnail(ctx context.Context, fileUUID string, width, height int) ([]byte, int, int, error)
 
 	// GetFileList 获取文件列表
-	GetFileList(ctx context.Context, page, pageSize int, category, status, extension string) ([]*entity.Files, int, error)
+	GetFileList(ctx context.Context, page, pageSize int, category, status, extension, applicationName string) ([]*entity.Files, int, error)
 
 	// DeleteFile 删除文件
 	DeleteFile(ctx context.Context, fileUUID string) error
@@ -65,7 +65,7 @@ func File() IFile {
 }
 
 // UploadFile 上传文件
-func (s *sFile) UploadFile(ctx context.Context, file *multipart.FileHeader, category string, uploaderID int64, uploaderIP string, userAgent string) (*entity.Files, error) {
+func (s *sFile) UploadFile(ctx context.Context, file *multipart.FileHeader, category string, uploaderID int64, uploaderIP string, userAgent string, applicationName ...string) (*entity.Files, error) {
 	// 打开上传的文件
 	src, err := file.Open()
 	if err != nil {
@@ -156,45 +156,66 @@ func (s *sFile) UploadFile(ctx context.Context, file *multipart.FileHeader, cate
 		}
 	}
 
-	// 使用原生SQL插入，确保二进制数据正确处理
-	insertSQL := `
-		INSERT INTO files (
-			file_name, file_extension, file_size, mime_type, file_content, 
-			file_hash, file_md5, has_thumbnail, thumbnail_content, 
-			thumbnail_width, thumbnail_height, metadata, file_status, 
-			file_category, uploader_ip, uploader_user_agent, uploader_id, 
-			created_at, updated_at
-		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
-		) RETURNING id`
-
-	result, err := g.DB().GetValue(ctx, insertSQL,
-		file.Filename,          // $1 file_name
-		extension,              // $2 file_extension
-		file.Size,              // $3 file_size
-		mimeType,               // $4 mime_type
-		content,                // $5 file_content (二进制数据)
-		fileHash,               // $6 file_hash
-		fileMd5,                // $7 file_md5
-		hasThumbnail,           // $8 has_thumbnail
-		thumbnailContent,       // $9 thumbnail_content
-		thumbnailWidth,         // $10 thumbnail_width
-		thumbnailHeight,        // $11 thumbnail_height
-		gconv.String(metadata), // $12 metadata
-		"active",               // $13 file_status
-		category,               // $14 file_category
-		uploaderIP,             // $15 uploader_ip
-		userAgent,              // $16 uploader_user_agent
-		uploaderID,             // $17 uploader_id
-		gtime.Now(),            // $18 created_at
-		gtime.Now(),            // $19 updated_at
-	)
-	if err != nil {
-		return nil, gerror.Wrap(err, "插入文件记录失败")
+	// 处理application_name参数
+	var appName string
+	if len(applicationName) > 0 && applicationName[0] != "" {
+		appName = applicationName[0]
 	}
 
-	// 转换fileID
-	fileID := result.Int64()
+	// 使用新的表结构：先插入文件内容到file_contents表，再插入文件元数据到files表
+	// 开启事务确保数据一致性
+	var fileID int64
+	err = g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+		// 1. 先插入文件内容到file_contents表
+		fileContentsDao := dao.NewFileContentsDao()
+		contentID, err := fileContentsDao.CreateFileContent(ctx, content, thumbnailContent)
+		if err != nil {
+			return gerror.Wrap(err, "创建文件内容记录失败")
+		}
+
+		// 2. 插入文件元数据到files表，引用file_contents表的ID
+		insertSQL := `
+			INSERT INTO files (
+				file_name, file_extension, file_size, mime_type,
+				file_hash, file_md5, has_thumbnail, thumbnail_width, thumbnail_height,
+				metadata, file_status, file_category, uploader_ip, uploader_user_agent,
+				uploader_id, application_name, file_content_id, created_at, updated_at
+			) VALUES (
+				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
+			) RETURNING id, file_uuid`
+
+		result, err := tx.GetValue(insertSQL,
+			file.Filename,          // $1 file_name
+			extension,              // $2 file_extension
+			file.Size,              // $3 file_size
+			mimeType,               // $4 mime_type
+			fileHash,               // $5 file_hash
+			fileMd5,                // $6 file_md5
+			hasThumbnail,           // $7 has_thumbnail
+			thumbnailWidth,         // $8 thumbnail_width
+			thumbnailHeight,        // $9 thumbnail_height
+			gconv.String(metadata), // $10 metadata
+			"active",               // $11 file_status
+			category,               // $12 file_category
+			uploaderIP,             // $13 uploader_ip
+			userAgent,              // $14 uploader_user_agent
+			uploaderID,             // $15 uploader_id
+			appName,                // $16 application_name
+			contentID,              // $17 file_content_id (引用file_contents表的ID)
+			gtime.Now(),            // $18 created_at
+			gtime.Now(),            // $19 updated_at
+		)
+		if err != nil {
+			return gerror.Wrap(err, "插入文件记录失败")
+		}
+
+		// result 包含 id 和 file_uuid，我们需要提取 id
+		fileID = result.Int64()
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	// 查询并返回完整的文件信息
 	fileRecord, err := dao.Files.Ctx(ctx).Where("id", fileID).One()
@@ -250,9 +271,9 @@ func (s *sFile) GetFileByID(ctx context.Context, fileID int64) (*entity.Files, e
 
 // GetFileContent 获取文件内容
 func (s *sFile) GetFileContent(ctx context.Context, fileUUID string) ([]byte, string, string, error) {
-	// 直接从数据库获取文件内容，避免通过entity的字符串转换
+	// 首先从files表获取文件基本信息和file_content_id
 	fileRecord, err := dao.Files.Ctx(ctx).
-		Fields("file_content, file_name, mime_type").
+		Fields("file_content_id, file_name, mime_type").
 		Where("file_uuid", fileUUID).
 		Where("file_status", "active").
 		One()
@@ -264,19 +285,49 @@ func (s *sFile) GetFileContent(ctx context.Context, fileUUID string) ([]byte, st
 		return nil, "", "", gerror.New("文件不存在")
 	}
 
-	// 直接获取二进制内容
-	content := fileRecord["file_content"].Bytes()
 	fileName := fileRecord["file_name"].String()
 	mimeType := fileRecord["mime_type"].String()
+	fileContentID := fileRecord["file_content_id"].Int64()
+
+	var content []byte
+
+	// 检查是否有file_content_id（使用新表结构）
+	if fileContentID > 0 {
+		// 从file_contents表获取文件内容
+		fileContentsDao := dao.NewFileContentsDao(ctx)
+		contentRecord, err := fileContentsDao.GetFileContent(ctx, fileContentID)
+		if err != nil {
+			return nil, "", "", gerror.Wrap(err, "查询文件内容失败")
+		}
+		if contentRecord == nil {
+			return nil, "", "", gerror.New("文件内容不存在")
+		}
+		// 将字符串转换为字节数组
+		content = []byte(contentRecord.FileContent)
+	} else {
+		// 向后兼容：直接从files表获取文件内容（处理旧数据）
+		legacyRecord, err := dao.Files.Ctx(ctx).
+			Fields("file_content").
+			Where("file_uuid", fileUUID).
+			Where("file_status", "active").
+			One()
+		if err != nil {
+			return nil, "", "", gerror.Wrap(err, "查询文件内容失败")
+		}
+		if legacyRecord.IsEmpty() {
+			return nil, "", "", gerror.New("文件内容不存在")
+		}
+		content = legacyRecord["file_content"].Bytes()
+	}
 
 	return content, fileName, mimeType, nil
 }
 
 // GetThumbnail 获取缩略图
 func (s *sFile) GetThumbnail(ctx context.Context, fileUUID string, width, height int) ([]byte, int, int, error) {
-	// 直接从数据库获取缩略图相关数据
+	// 首先从files表获取文件基本信息和file_content_id
 	fileRecord, err := dao.Files.Ctx(ctx).
-		Fields("has_thumbnail, thumbnail_content, thumbnail_width, thumbnail_height, file_content, mime_type").
+		Fields("file_content_id, has_thumbnail, thumbnail_width, thumbnail_height, mime_type").
 		Where("file_uuid", fileUUID).
 		Where("file_status", "active").
 		One()
@@ -296,30 +347,68 @@ func (s *sFile) GetThumbnail(ctx context.Context, fileUUID string, width, height
 
 	thumbnailWidth := fileRecord["thumbnail_width"].Int()
 	thumbnailHeight := fileRecord["thumbnail_height"].Int()
+	mimeType := fileRecord["mime_type"].String()
+	fileContentID := fileRecord["file_content_id"].Int64()
+
+	var thumbnailContent []byte
+	var originalContent []byte
+
+	// 检查是否有file_content_id（使用新表结构）
+	if fileContentID > 0 {
+		// 从file_contents表获取文件内容和缩略图内容
+		fileContentsDao := dao.NewFileContentsDao(ctx)
+		contentRecord, err := fileContentsDao.GetFileContent(ctx, fileContentID)
+		if err != nil {
+			return nil, 0, 0, gerror.Wrap(err, "查询文件内容失败")
+		}
+		if contentRecord == nil {
+			return nil, 0, 0, gerror.New("文件内容不存在")
+		}
+
+		// 获取原始文件内容和缩略图内容
+		originalContent = []byte(contentRecord.FileContent)
+		if contentRecord.ThumbnailContent != "" {
+			thumbnailContent = []byte(contentRecord.ThumbnailContent)
+		}
+	} else {
+		// 向后兼容：直接从files表获取文件内容和缩略图内容（处理旧数据）
+		legacyRecord, err := dao.Files.Ctx(ctx).
+			Fields("file_content, thumbnail_content").
+			Where("file_uuid", fileUUID).
+			Where("file_status", "active").
+			One()
+		if err != nil {
+			return nil, 0, 0, gerror.Wrap(err, "查询文件内容失败")
+		}
+		if legacyRecord.IsEmpty() {
+			return nil, 0, 0, gerror.New("文件内容不存在")
+		}
+
+		originalContent = legacyRecord["file_content"].Bytes()
+		thumbnailContent = legacyRecord["thumbnail_content"].Bytes()
+	}
 
 	// 如果请求的尺寸与存储的缩略图尺寸一致，直接返回
 	if (width <= 0 || width == thumbnailWidth) &&
-		(height <= 0 || height == thumbnailHeight) {
-		content := fileRecord["thumbnail_content"].Bytes()
-		return content, thumbnailWidth, thumbnailHeight, nil
+		(height <= 0 || height == thumbnailHeight) &&
+		len(thumbnailContent) > 0 {
+		return thumbnailContent, thumbnailWidth, thumbnailHeight, nil
 	}
 
 	// 需要重新生成指定尺寸的缩略图
-	originalContent := fileRecord["file_content"].Bytes()
-	mimeType := fileRecord["mime_type"].String()
 	processor := utility.NewImageProcessor()
 
-	thumbnailContent, actualWidth, actualHeight, err := processor.GenerateThumbnail(
+	newThumbnailContent, actualWidth, actualHeight, err := processor.GenerateThumbnail(
 		originalContent, mimeType, width, height)
 	if err != nil {
 		return nil, 0, 0, gerror.Wrap(err, "生成指定尺寸缩略图失败")
 	}
 
-	return thumbnailContent, actualWidth, actualHeight, nil
+	return newThumbnailContent, actualWidth, actualHeight, nil
 }
 
 // GetFileList 获取文件列表
-func (s *sFile) GetFileList(ctx context.Context, page, pageSize int, category, status, extension string) ([]*entity.Files, int, error) {
+func (s *sFile) GetFileList(ctx context.Context, page, pageSize int, category, status, extension, applicationName string) ([]*entity.Files, int, error) {
 	if page <= 0 {
 		page = 1
 	}
@@ -344,6 +433,9 @@ func (s *sFile) GetFileList(ctx context.Context, page, pageSize int, category, s
 	if extension != "" {
 		query = query.Where("file_extension", extension)
 	}
+	if applicationName != "" {
+		query = query.Where("application_name", applicationName)
+	}
 
 	// 查询总数
 	total, err := query.Count()
@@ -354,7 +446,7 @@ func (s *sFile) GetFileList(ctx context.Context, page, pageSize int, category, s
 	// 查询文件列表（不包含文件内容和缩略图内容）
 	offset := (page - 1) * pageSize
 	records, err := query.
-		Fields("id,file_uuid,file_name,file_extension,file_size,mime_type,file_hash,file_md5,has_thumbnail,thumbnail_width,thumbnail_height,download_count,last_download_at,metadata,file_status,file_category,uploader_ip,uploader_user_agent,uploader_id,created_at,updated_at").
+		Fields("id,file_uuid,file_name,file_extension,file_size,mime_type,file_hash,file_md5,has_thumbnail,thumbnail_width,thumbnail_height,download_count,last_download_at,metadata,file_status,file_category,application_name,uploader_ip,uploader_user_agent,uploader_id,created_at,updated_at").
 		Order("created_at DESC").
 		Limit(offset, pageSize).
 		All()
@@ -472,7 +564,20 @@ func (s *sFile) GetFileStats(ctx context.Context) (map[string]interface{}, error
 	}
 	stats["extension_stats"] = extensionStats
 
-	// 今日上传统计
+	// 最近7天上传统计
+	dailyStats, err := dao.Files.Ctx(ctx).
+		Where("file_status", "active").
+		Where("created_at >= ?", time.Now().AddDate(0, 0, -7).Format("2006-01-02")).
+		Fields("DATE(created_at) as date, COUNT(*) as count, SUM(file_size) as size").
+		Group("DATE(created_at)").
+		Order("date DESC").
+		All()
+	if err != nil {
+		return nil, gerror.Wrap(err, "查询每日上传统计失败")
+	}
+	stats["daily_upload_stats"] = dailyStats
+
+	// 今日上传统计（保留兼容性）
 	today := time.Now().Format("2006-01-02")
 	todayUploads, err := dao.Files.Ctx(ctx).
 		Where("file_status", "active").

@@ -200,7 +200,7 @@ export const configApi = {
 
     // 删除配置
     delete: (params: ConfigDeleteRequest) =>
-        alova.Delete<ConfigDeleteResponse>('config/delete', {params}),
+        alova.Delete<ConfigDeleteResponse>('config/delete', params),
 
     // 回滚配置到指定版本
     rollback: (params: ConfigRollbackRequest) =>

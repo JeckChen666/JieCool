@@ -27,7 +27,7 @@ func (c *ControllerV1) GetFileList(ctx context.Context, req *v1.GetFileListReq) 
 	}
 
 	// 调用服务层获取文件列表
-	files, total, err := service.File().GetFileList(ctx, page, pageSize, req.Category, "", req.Extension)
+	files, total, err := service.File().GetFileList(ctx, page, pageSize, req.Category, "", req.Extension, req.ApplicationName)
 	if err != nil {
 		return nil, gerror.Wrap(err, "获取文件列表失败")
 	}

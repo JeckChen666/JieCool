@@ -104,7 +104,7 @@ export default function UrlTokenPage() {
                             backgroundColor: 'var(--color-fill-2)',
                             borderRadius: '6px'
                         }}>
-                            <Space direction="vertical" size="large" style={{width: '100%'}}>
+                            <Space direction="vertical" size="large" style={{width: '100%', display: 'block'}}>
                                 {/* Token */}
                                 <div>
                                     <Text bold style={{display: 'block', marginBottom: '8px'}}>
@@ -146,11 +146,11 @@ export default function UrlTokenPage() {
                                     <Text bold style={{display: 'block', marginBottom: '8px'}}>
                                         登录URL
                                     </Text>
-                                    <Space style={{width: '100%'}}>
+                                    <div style={{width: '100%'}}>
                                         <Input.Group compact style={{flex: 1}}>
                                             <Input
                                                 style={{
-                                                    width: 'calc(100% - 160px)',
+                                                    width: 'calc(100% - 180px)',
                                                     fontFamily: 'monospace',
                                                     fontSize: '12px'
                                                 }}
@@ -170,7 +170,7 @@ export default function UrlTokenPage() {
                                                 打开
                                             </Button>
                                         </Input.Group>
-                                    </Space>
+                                    </div>
                                 </div>
 
                                 <Divider/>

@@ -35,4 +35,6 @@ type Files struct {
 	CreatedAt         *gtime.Time //
 	UpdatedAt         *gtime.Time //
 	FileMd5           any         //
+	ApplicationName   any         //
+	FileContentId     any         // 关联文件内容表ID
 }

@@ -44,8 +44,8 @@ export default function WeiboNewPage() {
         setUploadError(null);
         setUploading(true);
         try {
-            // 上传文件到后端，分类为 image
-            const res = await fileApi.uploadFile(file, "image");
+            // 上传文件到后端，分类为 image，使用微博专用上传接口
+            const res = await fileApi.uploadFileForWeibo(file, "image");
             // 上传成功后，根据返回的 file_uuid 查询文件信息以获取 files.id
             const info: any = await fileApi.getFileInfo(res.file_uuid);
             const idNum = Number(info?.id);

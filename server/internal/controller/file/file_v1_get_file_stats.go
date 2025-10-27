@@ -90,6 +90,20 @@ func (c *ControllerV1) GetFileStats(ctx context.Context, req *v1.GetFileStatsReq
 		}
 	}
 
+	// 处理每日上传统计数据
+	var dailyUploadStats []v1.DailyUploadStats
+	if dailyData, ok := stats["daily_upload_stats"]; ok && dailyData != nil {
+		if dailyResult, ok := dailyData.(gdb.Result); ok {
+			for _, record := range dailyResult {
+				dailyUploadStats = append(dailyUploadStats, v1.DailyUploadStats{
+					Date:  record["date"].String(),
+					Count: record["count"].Int64(),
+					Size:  record["size"].Int64(),
+				})
+			}
+		}
+	}
+
 	return &v1.GetFileStatsRes{
 		FileStats: v1.FileStats{
 			TotalFiles:       toInt64(stats["total_files"]),
@@ -98,6 +112,7 @@ func (c *ControllerV1) GetFileStats(ctx context.Context, req *v1.GetFileStatsReq
 			CategoryStats:    categoryStats,
 			ExtensionStats:   extensionStats,
 			SizeDistribution: sizeDistribution,
+			DailyUploadStats: dailyUploadStats,
 		},
 	}, nil
 }

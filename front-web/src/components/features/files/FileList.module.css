@@ -52,13 +52,6 @@
   margin-top: 2px;
 }
 
-.md5Text {
-  font-family: 'Courier New', monospace;
-  font-size: 12px;
-  color: #666;
-  cursor: pointer;
-}
-
 .paginationWrapper {
   display: flex;
   justify-content: center;

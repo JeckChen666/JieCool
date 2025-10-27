@@ -12,6 +12,7 @@ import (
 
 type IFileV1 interface {
 	UploadFile(ctx context.Context, req *v1.UploadFileReq) (res *v1.UploadFileRes, err error)
+	UploadFileForWeibo(ctx context.Context, req *v1.UploadFileForWeiboReq) (res *v1.UploadFileForWeiboRes, err error)
 	DownloadFile(ctx context.Context, req *v1.DownloadFileReq) (res *v1.DownloadFileRes, err error)
 	GetThumbnail(ctx context.Context, req *v1.GetThumbnailReq) (res *v1.GetThumbnailRes, err error)
 	GetFileInfo(ctx context.Context, req *v1.GetFileInfoReq) (res *v1.GetFileInfoRes, err error)

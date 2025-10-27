@@ -7,9 +7,10 @@ import (
 
 // UploadFileReq 文件上传请求结构
 type UploadFileReq struct {
-	g.Meta   `path:"/file/upload" tags:"File" method:"post" summary:"Upload file to database"`
-	File     *ghttp.UploadFile `json:"file" v:"required#请选择要上传的文件" dc:"上传的文件"`
-	Category string            `json:"category" dc:"文件分类（可选）"`
+	g.Meta          `path:"/file/upload" tags:"File" method:"post" summary:"Upload file to database"`
+	File            *ghttp.UploadFile `json:"file" v:"required#请选择要上传的文件" dc:"上传的文件"`
+	Category        string            `json:"category" dc:"文件分类（可选）"`
+	ApplicationName string            `json:"application_name" dc:"应用名称（可选，如weibo等）"`
 }
 
 // UploadFileRes 文件上传响应结构
@@ -111,19 +112,20 @@ type GetFileInfoRes struct {
 
 // GetFileListReq 获取文件列表请求结构
 type GetFileListReq struct {
-	g.Meta       `path:"/file/list" tags:"File" method:"get" summary:"Get file list with pagination and filters"`
-	Page         int    `json:"page" d:"1" dc:"页码（从1开始）"`
-	PageSize     int    `json:"page_size" d:"20" dc:"每页数量（最大100）"`
-	Category     string `json:"category" dc:"文件分类筛选"`
-	Extension    string `json:"extension" dc:"文件扩展名筛选"`
-	Keyword      string `json:"keyword" dc:"文件名关键词搜索"`
-	SortBy       string `json:"sort_by" d:"created_at" dc:"排序字段（created_at, file_size, download_count）"`
-	SortOrder    string `json:"sort_order" d:"desc" dc:"排序方向（asc, desc）"`
-	DateFrom     string `json:"date_from" dc:"创建时间筛选开始日期（YYYY-MM-DD）"`
-	DateTo       string `json:"date_to" dc:"创建时间筛选结束日期（YYYY-MM-DD）"`
-	MinSize      int64  `json:"min_size" dc:"最小文件大小（字节）"`
-	MaxSize      int64  `json:"max_size" dc:"最大文件大小（字节）"`
-	HasThumbnail *bool  `json:"has_thumbnail" dc:"是否有缩略图筛选"`
+	g.Meta          `path:"/file/list" tags:"File" method:"get" summary:"Get file list with pagination and filters"`
+	Page            int    `json:"page" d:"1" dc:"页码（从1开始）"`
+	PageSize        int    `json:"page_size" d:"20" dc:"每页数量（最大100）"`
+	Category        string `json:"category" dc:"文件分类筛选"`
+	Extension       string `json:"extension" dc:"文件扩展名筛选"`
+	Keyword         string `json:"keyword" dc:"文件名关键词搜索"`
+	ApplicationName string `json:"application_name" dc:"应用名称筛选（如weibo等）"`
+	SortBy          string `json:"sort_by" d:"created_at" dc:"排序字段（created_at, file_size, download_count）"`
+	SortOrder       string `json:"sort_order" d:"desc" dc:"排序方向（asc, desc）"`
+	DateFrom        string `json:"date_from" dc:"创建时间筛选开始日期（YYYY-MM-DD）"`
+	DateTo          string `json:"date_to" dc:"创建时间筛选结束日期（YYYY-MM-DD）"`
+	MinSize         int64  `json:"min_size" dc:"最小文件大小（字节）"`
+	MaxSize         int64  `json:"max_size" dc:"最大文件大小（字节）"`
+	HasThumbnail    *bool  `json:"has_thumbnail" dc:"是否有缩略图筛选"`
 }
 
 // FileListItem 文件列表项结构
@@ -202,6 +204,13 @@ type SizeDistribution struct {
 	Count int64  `json:"count" dc:"文件数量"`
 }
 
+// DailyUploadStats 每日上传统计结构
+type DailyUploadStats struct {
+	Date  string `json:"date" dc:"日期"`
+	Count int64  `json:"count" dc:"上传文件数量"`
+	Size  int64  `json:"size" dc:"上传文件总大小"`
+}
+
 // FileStats 文件统计结构
 type FileStats struct {
 	TotalFiles       int64              `json:"total_files" dc:"总文件数"`
@@ -210,6 +219,7 @@ type FileStats struct {
 	CategoryStats    []CategoryStats    `json:"category_stats" dc:"分类统计"`
 	ExtensionStats   []ExtensionStats   `json:"extension_stats" dc:"扩展名统计"`
 	SizeDistribution []SizeDistribution `json:"size_distribution" dc:"大小分布统计"`
+	DailyUploadStats []DailyUploadStats `json:"daily_upload_stats" dc:"最近7天上传统计"`
 }
 
 // GetFileStatsRes 获取文件统计响应结构
@@ -229,4 +239,68 @@ type GetFileMd5Res struct {
 	FileName string `json:"file_name" dc:"文件名"`
 	FileMd5  string `json:"file_md5" dc:"文件MD5哈希值"`
 	FileSize int64  `json:"file_size" dc:"文件大小（字节）"`
+}
+
+// UploadFileForWeiboReq 微博模块文件上传请求结构
+type UploadFileForWeiboReq struct {
+	g.Meta   `path:"/file/upload/weibo" tags:"File" method:"post" summary:"Upload file for weibo module"`
+	File     *ghttp.UploadFile `json:"file" v:"required#请选择要上传的文件" dc:"上传的文件"`
+	Category string            `json:"category" dc:"文件分类（可选）"`
+}
+
+// UploadFileForWeiboRes 微博模块文件上传响应结构
+type UploadFileForWeiboRes struct {
+	FileUuid      string `json:"file_uuid" dc:"文件唯一标识符"`
+	FileName      string `json:"file_name" dc:"文件名"`
+	FileSize      int64  `json:"file_size" dc:"文件大小（字节）"`
+	FileExtension string `json:"file_extension" dc:"文件扩展名"`
+	MimeType      string `json:"mime_type" dc:"MIME类型"`
+	FileMd5       string `json:"file_md5" dc:"文件MD5哈希值，用于完整性校验"`
+	HasThumbnail  bool   `json:"has_thumbnail" dc:"是否有缩略图"`
+	DownloadUrl   string `json:"download_url" dc:"下载链接"`
+	ThumbnailUrl  string `json:"thumbnail_url,omitempty" dc:"缩略图链接"`
+	FileId        int64  `json:"file_id" dc:"文件ID，用于微博模块关联"`
+}
+
+// CleanupFilesReq 清理文件请求结构
+type CleanupFilesReq struct {
+	g.Meta `path:"/file/cleanup" tags:"File" method:"post" summary:"Cleanup deleted files"`
+}
+
+// DeletedFileInfo 已删除文件信息结构
+type DeletedFileInfo struct {
+	FileUUID     string `json:"file_uuid" dc:"文件唯一标识符"`
+	FileName     string `json:"file_name" dc:"文件名"`
+	FileSize     int64  `json:"file_size" dc:"文件大小（字节）"`
+	FileCategory string `json:"file_category" dc:"文件分类"`
+	DeletedAt    string `json:"deleted_at" dc:"删除时间"`
+}
+
+// CleanupFilesRes 清理文件响应结构
+type CleanupFilesRes struct {
+	Success        bool              `json:"success" dc:"是否成功"`
+	Message        string            `json:"message" dc:"消息"`
+	TotalProcessed int64             `json:"total_processed" dc:"总处理数量"`
+	DeletedCount   int64             `json:"deleted_count" dc:"删除的文件数量"`
+	Duration       string            `json:"duration" dc:"执行时长"`
+	StartTime      string            `json:"start_time" dc:"开始时间"`
+	EndTime        string            `json:"end_time" dc:"结束时间"`
+	DeletedFiles   []DeletedFileInfo `json:"deleted_files" dc:"已删除的文件列表"`
+	Errors         []string          `json:"errors" dc:"错误信息"`
+}
+
+// GetCleanupStatusReq 获取清理状态请求结构
+type GetCleanupStatusReq struct {
+	g.Meta `path:"/file/cleanup/status" tags:"File" method:"get" summary:"Get file cleanup status"`
+}
+
+// GetCleanupStatusRes 获取清理状态响应结构
+type GetCleanupStatusRes struct {
+	Enabled        bool   `json:"enabled" dc:"是否启用清理"`
+	RetentionDays  int    `json:"retention_days" dc:"保留天数"`
+	IntervalHours  int    `json:"interval_hours" dc:"执行间隔（小时）"`
+	BatchSize      int    `json:"batch_size" dc:"批处理大小"`
+	LogEnabled     bool   `json:"log_enabled" dc:"是否记录日志"`
+	PendingCleanup int    `json:"pending_cleanup" dc:"待清理文件数量"`
+	ConfigMessage  string `json:"config_message" dc:"配置状态消息"`
 }

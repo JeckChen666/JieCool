@@ -74,6 +74,8 @@ export interface FileListParams {
   category?: string;
   /** 文件扩展名筛选 */
   extension?: string;
+  /** 应用名称筛选 */
+  application_name?: string | null;
   /** 排序字段：created_at, file_size, download_count */
   sort_by?: string;
   /** 排序方向：asc, desc */
@@ -194,15 +196,36 @@ export const fileApi = {
    * 上传文件
    * @param file 文件对象
    * @param category 文件分类（可选）
+   * @param applicationName 应用名称（可选）
    */
-  uploadFile: (file: File, category?: string) => {
+  uploadFile: (file: File, category?: string, applicationName?: string) => {
     const formData = new FormData();
     formData.append('file', file);
     if (category) {
       formData.append('category', category);
     }
-    
+    if (applicationName) {
+      formData.append('application_name', applicationName);
+    }
+
     return alova.Post<UploadFileResponse>('/file/upload', formData, {
+      headers: {
+        // 不设置Content-Type，让浏览器自动设置multipart/form-data边界
+      }
+    });
+  },
+
+  /**
+   * 为微博模块上传文件
+   * @param file 文件对象
+   * @param category 文件分类（可选，默认为weibo）
+   */
+  uploadFileForWeibo: (file: File, category?: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('category', category || 'weibo');
+
+    return alova.Post<UploadFileResponse>('/file/upload/weibo', formData, {
       headers: {
         // 不设置Content-Type，让浏览器自动设置multipart/form-data边界
       }

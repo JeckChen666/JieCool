@@ -78,7 +78,7 @@ export default function WeiboEditPage() {
         setUploading(true);
         try {
             for (const file of files) {
-                const res = await fileApi.uploadFile(file, "image");
+                const res = await fileApi.uploadFileForWeibo(file, "image");
                 const info: any = await fileApi.getFileInfo(res.file_uuid);
                 const idNum = Number(info?.id);
                 if (!idNum || idNum <= 0) {

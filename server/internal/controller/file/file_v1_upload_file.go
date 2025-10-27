@@ -3,12 +3,14 @@ package file
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 
 	"server/api/file/v1"
 	"server/internal/service"
+	"server/utility"
 )
 
 // UploadFile 上传文件
@@ -29,14 +31,26 @@ func (c *ControllerV1) UploadFile(ctx context.Context, req *v1.UploadFileReq) (r
 	uploaderIP := r.GetClientIp()
 	userAgent := r.Header.Get("User-Agent")
 
-	// 如果没有指定分类，使用默认分类
-	category := req.Category
-	if category == "" {
-		category = "general"
+	// 处理文件分类
+	var category string
+	if req.Category != "" {
+		// 使用用户指定的分类
+		category = req.Category
+	} else {
+		// 自动检测文件分类
+		extension := filepath.Ext(file.Filename)
+		mimeType := utility.GetMimeTypeFromExtension(extension)
+		// 如果HTTP头中有Content-Type，优先使用
+		if headerType := file.Header.Get("Content-Type"); headerType != "" {
+			mimeType = headerType
+		}
+		category = utility.DetectFileCategory(mimeType, extension)
+		g.Log().Infof(ctx, "自动检测文件分类: 文件名=%s, MIME类型=%s, 扩展名=%s, 分类=%s",
+			file.Filename, mimeType, extension, category)
 	}
 
 	// 调用服务层上传文件
-	fileEntity, err := service.File().UploadFile(ctx, file.FileHeader, category, 0, uploaderIP, userAgent)
+	fileEntity, err := service.File().UploadFile(ctx, file.FileHeader, category, 0, uploaderIP, userAgent, req.ApplicationName)
 	if err != nil {
 		return nil, gerror.Wrap(err, "文件上传失败")
 	}

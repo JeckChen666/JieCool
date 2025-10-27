@@ -68,6 +68,12 @@ const FILE_CATEGORIES = [
     {label: '其他', value: 'other'}
 ];
 
+const APPLICATION_FILTERS = [
+    {label: '全部文件', value: ''},
+    {label: '微博文件', value: 'weibo'},
+    {label: '无应用标记', value: 'null'}
+];
+
 const SORT_OPTIONS = [
     {label: '创建时间', value: 'created_at'},
     {label: '文件大小', value: 'file_size'},
@@ -84,6 +90,7 @@ export default function FileList({refreshTrigger, onViewDetail, onDownload, onDe
     // 原有状态
     const [searchKeyword, setSearchKeyword] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('');
+    const [selectedApplication, setSelectedApplication] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [sortField, setSortField] = useState('created_at');
@@ -98,14 +105,25 @@ export default function FileList({refreshTrigger, onViewDetail, onDownload, onDe
     const [dontShowAgain, setDontShowAgain] = useState(false);
 
     // 构建搜索参数
-    const searchParams = useMemo(() => ({
-        page: currentPage,
-        page_size: pageSize,
-        keyword: searchKeyword,
-        category: selectedCategory,
-        sort_by: sortField,
-        sort_order: sortOrder
-    }), [currentPage, pageSize, searchKeyword, selectedCategory, sortField, sortOrder]);
+    const searchParams = useMemo(() => {
+        const params: any = {
+            page: currentPage,
+            page_size: pageSize,
+            keyword: searchKeyword,
+            category: selectedCategory,
+            sort_by: sortField,
+            sort_order: sortOrder
+        };
+
+        // 处理application_name筛选
+        if (selectedApplication === 'null') {
+            params.application_name = null; // 查询没有application_name的文件
+        } else if (selectedApplication) {
+            params.application_name = selectedApplication;
+        }
+
+        return params;
+    }, [currentPage, pageSize, searchKeyword, selectedCategory, selectedApplication, sortField, sortOrder]);
 
     // 获取文件列表
     const {
@@ -405,20 +423,7 @@ export default function FileList({refreshTrigger, onViewDetail, onDownload, onDe
             ),
             width: 100
         },
-        {
-            title: 'MD5',
-            dataIndex: 'file_md5',
-            key: 'file_md5',
-            render: (md5: string) => (
-                <Tooltip content={md5 || '暂无'}>
-                    <Text className={styles.md5Text}>
-                        {md5 ? md5.substring(0, 8) + '...' : '暂无'}
-                    </Text>
-                </Tooltip>
-            ),
-            width: 120
-        },
-        {
+                {
             title: '下载次数',
             dataIndex: 'download_count',
             key: 'download_count',
@@ -489,6 +494,19 @@ export default function FileList({refreshTrigger, onViewDetail, onDownload, onDe
                         {FILE_CATEGORIES.map(category => (
                             <Option key={category.value} value={category.value}>
                                 {category.label}
+                            </Option>
+                        ))}
+                    </Select>
+
+                    <Select
+                        placeholder="应用筛选"
+                        value={selectedApplication}
+                        onChange={setSelectedApplication}
+                        style={{width: 120}}
+                    >
+                        {APPLICATION_FILTERS.map(filter => (
+                            <Option key={filter.value} value={filter.value}>
+                                {filter.label}
                             </Option>
                         ))}
                     </Select>

@@ -33,9 +33,45 @@
   margin-bottom: 16px;
 }
 
-.chartCard .arco-card-body {
+.chartCard :global(.arco-card-body) {
   height: calc(100% - 60px);
   overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 美化滚动条样式 */
+.chartCard :global(.arco-card-body)::-webkit-scrollbar,
+.categoryStats::-webkit-scrollbar,
+.extensionStats::-webkit-scrollbar,
+.sizeDistribution::-webkit-scrollbar,
+.dailyStats::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chartCard :global(.arco-card-body)::-webkit-scrollbar-track,
+.categoryStats::-webkit-scrollbar-track,
+.extensionStats::-webkit-scrollbar-track,
+.sizeDistribution::-webkit-scrollbar-track,
+.dailyStats::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.chartCard :global(.arco-card-body)::-webkit-scrollbar-thumb,
+.categoryStats::-webkit-scrollbar-thumb,
+.extensionStats::-webkit-scrollbar-thumb,
+.sizeDistribution::-webkit-scrollbar-thumb,
+.dailyStats::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.chartCard :global(.arco-card-body)::-webkit-scrollbar-thumb:hover,
+.categoryStats::-webkit-scrollbar-thumb:hover,
+.extensionStats::-webkit-scrollbar-thumb:hover,
+.sizeDistribution::-webkit-scrollbar-thumb:hover,
+.dailyStats::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 /* 分类统计样式 */
@@ -43,6 +79,9 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .categoryItem {
@@ -68,6 +107,9 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .extensionItem {
@@ -105,6 +147,9 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .sizeItem {
@@ -125,6 +170,9 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .dailyItem {
@@ -146,17 +194,29 @@
   .chartCard {
     height: 350px;
   }
+
+  .chartCard :global(.arco-card-body) {
+    height: calc(100% - 60px);
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
 }
 
 @media (max-width: 768px) {
   .overviewRow .arco-col {
     margin-bottom: 16px;
   }
-  
+
   .chartCard {
     height: 300px;
   }
-  
+
+  .chartCard :global(.arco-card-body) {
+    height: calc(100% - 60px);
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
   .categoryHeader,
   .extensionHeader,
   .sizeHeader,
@@ -171,12 +231,18 @@
   .statsContainer {
     margin: 0 -8px;
   }
-  
+
   .chartCard {
     height: 280px;
     margin: 0 8px 16px;
   }
-  
+
+  .chartCard :global(.arco-card-body) {
+    height: calc(100% - 50px);
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
   .statCard {
     margin: 0 8px 16px;
   }

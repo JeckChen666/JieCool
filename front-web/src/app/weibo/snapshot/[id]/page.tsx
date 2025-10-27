@@ -4,6 +4,7 @@ import {useParams} from "next/navigation";
 import Link from "next/link";
 import {getSnapshot} from "@/lib/weibo";
 import {Alert, Button, Card, Descriptions, Space, Spin, Tag, Typography} from "@arco-design/web-react";
+import FileThumbnail from "@/components/features/weibo/FileThumbnail";
 
 export default function WeiboSnapshotDetailPage() {
     const params = useParams();
@@ -69,6 +70,42 @@ export default function WeiboSnapshotDetailPage() {
                         <Typography.Paragraph style={{whiteSpace: 'pre-wrap'}}>
                             {data.content}
                         </Typography.Paragraph>
+
+                        {/* 显示图片资产 */}
+                        {Array.isArray(data.assets) && data.assets.filter(a => a.kind === 'image').length > 0 && (
+                            <div style={{marginTop: 16}}>
+                                <Typography.Title heading={5} style={{marginBottom: 12}}>
+                                    图片资产
+                                </Typography.Title>
+                                <Space size={10} wrap>
+                                    {data.assets.filter(a => a.kind === 'image').map((a, idx) => (
+                                        <FileThumbnail key={`${a.fileId}-${idx}`} fileId={a.fileId} size={120}
+                                                       clickable={true}/>
+                                    ))}
+                                </Space>
+                            </div>
+                        )}
+
+                        {/* 显示附件资产 */}
+                        {Array.isArray(data.assets) && data.assets.filter(a => a.kind === 'attachment').length > 0 && (
+                            <div style={{marginTop: 16}}>
+                                <Typography.Title heading={5} style={{marginBottom: 12}}>
+                                    附件资产
+                                </Typography.Title>
+                                <Space size={10} wrap>
+                                    {data.assets.filter(a => a.kind === 'attachment').map((a, idx) => (
+                                        <Card key={`${a.fileId}-${idx}`}
+                                              size="small"
+                                              style={{width: 200}}
+                                              bodyStyle={{padding: 12}}>
+                                            <Typography.Text type="secondary" style={{fontSize: 12}}>
+                                                附件 ID: {a.fileId}
+                                            </Typography.Text>
+                                        </Card>
+                                    ))}
+                                </Space>
+                            </div>
+                        )}
                     </Card>
                 )}
             </Space>

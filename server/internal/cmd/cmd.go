@@ -15,6 +15,7 @@ import (
 	"server/internal/controller/visit"
 	"server/internal/controller/weibo"
 	"server/internal/middleware"
+	"server/internal/service"
 	"server/internal/service/configcache"
 )
 
@@ -29,6 +30,9 @@ var (
 			if _, err := configcache.PreloadAll(ctx); err != nil {
 				g.Log().Warning(ctx, "ConfigCache preload failed, continue to start server:", err)
 			}
+			// 启动文件清理调度器
+			service.StartCleanupScheduler(ctx)
+			g.Log().Info(ctx, "文件清理调度器已启动")
 			s.Use(ghttp.MiddlewareCORS)
 			s.Group("/", func(group *ghttp.RouterGroup) {
 				//group.Middleware(ghttp.MiddlewareCORS)

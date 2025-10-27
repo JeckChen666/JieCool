@@ -44,6 +44,8 @@ type FilesColumns struct {
 	CreatedAt         string //
 	UpdatedAt         string //
 	FileMd5           string //
+	ApplicationName   string //
+	FileContentId     string // 关联文件内容表ID
 }
 
 // filesColumns holds the columns for the table files.
@@ -71,6 +73,8 @@ var filesColumns = FilesColumns{
 	CreatedAt:         "created_at",
 	UpdatedAt:         "updated_at",
 	FileMd5:           "file_md5",
+	ApplicationName:   "application_name",
+	FileContentId:     "file_content_id",
 }
 
 // NewFilesDao creates and returns a new DAO object for table data access.

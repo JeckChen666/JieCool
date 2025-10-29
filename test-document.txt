@@ -1,0 +1,4 @@
+这是一个测试文档文件，用于验证文件类型自动检测功能。
+
+The quick brown fox jumps over the lazy dog.
+这是一个包含英文和中文的测试文档。

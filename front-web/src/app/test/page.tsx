@@ -15,6 +15,8 @@ const TestPage: React.FC = () => {
     { path: '/test', name: '测试页面' },
     { path: '/admin/config', name: '管理' },
     { path: '/admin/config/manage', name: '动态配置管理' },
+    { path: '/blog', name: '博客列表' },
+    { path: '/blog/create', name: '创建博客文章' },
   ];
 
   const columns = [

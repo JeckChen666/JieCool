@@ -8,6 +8,7 @@ import (
 	"github.com/gogf/gf/v2/os/gcmd"
 
 	"server/internal/controller/auth"
+	"server/internal/controller/blog"
 	"server/internal/controller/config"
 	"server/internal/controller/daily"
 	"server/internal/controller/file"
@@ -41,6 +42,7 @@ var (
 				group.Middleware(middleware.MiddlewareJWT)
 				group.Bind(
 					auth.NewV1(),
+					blog.NewV1(),
 					config.NewV1(),
 					hello.NewV1(),
 					visit.NewV1(),

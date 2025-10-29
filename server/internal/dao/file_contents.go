@@ -25,10 +25,10 @@ func NewFileContentsDao(ctx ...context.Context) *FileContentsDao {
 
 // CreateFileContent 创建文件内容记录
 func (d *FileContentsDao) CreateFileContent(ctx context.Context, fileContent []byte, thumbnailContent []byte) (contentId int64, err error) {
-	// 使用原生SQL解决PostgreSQL兼容性问题
+	// 使用原生SQL解决PostgreSQL兼容性问题，明确指定时间戳字段
 	sql := `
-		INSERT INTO file_contents (file_content, thumbnail_content)
-		VALUES ($1, $2)
+		INSERT INTO file_contents (file_content, thumbnail_content, created_at, updated_at)
+		VALUES ($1, $2, NOW(), NOW())
 		RETURNING id`
 
 	result, err := d.DB().GetValue(ctx, sql, fileContent, thumbnailContent)

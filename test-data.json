@@ -1,0 +1,17 @@
+{
+  "name": "文件类型检测测试",
+  "description": "这是一个JSON测试文件，用于验证自动检测功能",
+  "fileTypes": [
+    "document",
+    "image", 
+    "video",
+    "audio",
+    "archive",
+    "other"
+  ],
+  "metadata": {
+    "created": "2025-10-26",
+    "version": "1.0.0",
+    "author": "Claude"
+  }
+}

@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Card, Button, Input, Tag, Pagination, Spin, Empty, Typography, Space } from '@arco-design/web-react'
-import { IconSearch, IconEdit, IconEye, IconMessage, IconClockCircle } from '@arco-design/web-react/icon'
+import { Card, Button, Input, Tag, Pagination, Spin, Empty, Typography, Space, Select } from '@arco-design/web-react'
+import { IconSearch, IconEdit, IconEye, IconMessage, IconClockCircle, IconSettings } from '@arco-design/web-react/icon'
 import { blogApi } from '@/lib/blog-api'
+import type { BlogCategory } from '@/types/blog'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -40,6 +41,17 @@ export default function BlogPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(10)
   const [searchKeyword, setSearchKeyword] = useState('')
+  const [categories, setCategories] = useState<BlogCategory[]>([])
+  const [selectedCategory, setSelectedCategory] = useState<number | undefined>(undefined)
+
+  const fetchCategories = async () => {
+    try {
+      const response = await blogApi.getCategories()
+      setCategories(response.data?.list || [])
+    } catch (error) {
+      console.error('获取分类失败:', error)
+    }
+  }
 
   const fetchArticles = async (params: any = {}) => {
     setLoading(true)
@@ -48,6 +60,7 @@ export default function BlogPage() {
         page: currentPage,
         size: pageSize,
         search: searchKeyword,
+        categoryId: selectedCategory,
         status: 'published',
         ...params
       })
@@ -65,6 +78,11 @@ export default function BlogPage() {
 
   const handleSearch = (value: string) => {
     setSearchKeyword(value)
+    setCurrentPage(1)
+  }
+
+  const handleCategoryChange = (value: number | undefined) => {
+    setSelectedCategory(value)
     setCurrentPage(1)
   }
 
@@ -89,8 +107,9 @@ export default function BlogPage() {
   }
 
   useEffect(() => {
+    fetchCategories()
     fetchArticles()
-  }, [currentPage, searchKeyword])
+  }, [currentPage, searchKeyword, selectedCategory])
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
@@ -115,9 +134,31 @@ export default function BlogPage() {
             />
           </div>
 
+          <div style={{ minWidth: '150px' }}>
+            <Select
+              placeholder="选择分类..."
+              value={selectedCategory}
+              onChange={handleCategoryChange}
+              allowClear
+              style={{ width: '100%' }}
+            >
+              {categories.map(category => (
+                <Select.Option key={category.id} value={category.id}>
+                  {category.name}
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+
           <Link href="/blog/create">
             <Button type="primary" icon={<IconEdit />}>
               写文章
+            </Button>
+          </Link>
+
+          <Link href="/blog/categories">
+            <Button icon={<IconSettings />}>
+              管理分类
             </Button>
           </Link>
         </div>

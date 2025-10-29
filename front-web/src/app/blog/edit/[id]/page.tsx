@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, Form, Input, Button, Message, Typography, Spin, Space, Divider } from '@arco-design/web-react'
+import { Card, Form, Input, Button, Message, Typography, Spin, Space, Divider, Select } from '@arco-design/web-react'
 import { IconSave, IconEdit, IconEye, IconArrowLeft } from '@arco-design/web-react/icon'
 import { blogApi } from '@/lib/blog-api'
 import type { UpdateArticleRequest, BlogCategory, BlogArticle } from '@/types/blog'
@@ -33,7 +33,7 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
   const fetchCategories = async () => {
     try {
       const response = await blogApi.getCategories()
-      setCategories(response.data || [])
+      setCategories(response.data?.list || [])
     } catch (error) {
       console.error('获取分类失败:', error)
     }
@@ -51,7 +51,8 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
         title: response.title,
         slug: response.slug,
         summary: response.summary || '',
-        content: response.content
+        content: response.content,
+        categoryId: response.categoryId
       }
       setFormData(data)
       form.setFieldsValue(data)
@@ -306,6 +307,47 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
                     }}
                     onChange={(value) => handleFormChange('summary', value)}
                   />
+                </Form.Item>
+
+                <Form.Item
+                  label={
+                    <span style={{ fontSize: '16px', fontWeight: '500', color: '#333' }}>
+                      文章分类
+                    </span>
+                  }
+                  field="categoryId"
+                  rules={[{ required: true, message: '请选择文章分类' }]}
+                >
+                  <Select
+                    placeholder="选择一个分类..."
+                    style={{
+                      borderRadius: '8px',
+                      border: '2px solid #e5e7eb'
+                    }}
+                    allowClear
+                  >
+                    {categories.map(category => (
+                      <Select.Option key={category.id} value={category.id}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{
+                            fontSize: '12px',
+                            background: '#f0f9ff',
+                            color: '#0369a1',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontWeight: '500'
+                          }}>
+                            {category.name}
+                          </span>
+                          {category.description && (
+                            <span style={{ color: '#666', fontSize: '12px' }}>
+                              {category.description}
+                            </span>
+                          )}
+                        </div>
+                      </Select.Option>
+                    ))}
+                  </Select>
                 </Form.Item>
               </Form>
             </Card>

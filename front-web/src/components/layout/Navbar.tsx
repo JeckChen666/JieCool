@@ -8,6 +8,7 @@ import Dropdown from "../ui/Dropdown";
 import {useColor} from "@/components/contexts/ColorContext";
 import {clearToken, getToken} from "@/lib/token";
 import {Message} from "@arco-design/web-react";
+import {authApi} from "@/lib/auth-api";
 
 const SITE_NAME = "JieCool";
 
@@ -18,6 +19,9 @@ function getTitleFromPath(pathname: string) {
         "/admin/config": "配置管理",
         "/admin/url-token": "URL Token管理",
         "/weibo": "weibo",
+        "/blog": "博客文章",
+        "/blog/create": "创建文章",
+        "/blog/categories": "分类管理",
     };
     return map[pathname] || "页面";
 }
@@ -72,23 +76,15 @@ export default function Navbar() {
 
     const onLogout = async () => {
         try {
-            const token = getToken();
-            const resp = await fetch("/api/auth/logout", {
-                method: "POST",
-                headers: token ? {Authorization: `Bearer ${token}`} : undefined,
-            });
-            const data = await resp.json();
-            if (resp.status === 401) {
-                throw new Error(data?.message || "未授权");
-            }
-            if (data?.loggedOut) {
+            const resp = await authApi.logout();
+            if (resp.loggedOut) {
                 clearToken();
                 setIsLoggedIn(false);
                 Message.success("已退出登录");
                 const next = pathname || "/";
                 router.push(`/login?next=${encodeURIComponent(next)}`);
             } else {
-                throw new Error(data?.message || "登出失败");
+                console.log("登出失败")
             }
         } catch (e: any) {
             Message.error(e?.message || "登出失败");
@@ -115,6 +111,7 @@ export default function Navbar() {
                     ariaLabel="Jump to"
                     options={[
                         {label: "首页", value: "/"},
+                        {label: "博客", value: "/blog"},
                         {label: "微博", value: "/weibo"},
                         ...(isLoggedIn ? [
                             {label: "文件管理", value: "/file-management"},

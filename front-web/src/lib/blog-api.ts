@@ -46,7 +46,7 @@ export const blogApi = {
 
   // 获取分类列表
   getCategories: () =>
-    alova.Get<BlogCategory[]>('/blog/categories'),
+    alova.Get<{list: BlogCategory[]}>('/blog/categories'),
 
   // 评论管理
   // 创建评论

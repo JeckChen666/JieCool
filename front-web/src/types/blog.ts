@@ -37,7 +37,6 @@ export interface BlogArticle {
 // 博客分类
 export interface BlogCategory {
   id: number
-  categoryId: string
   name: string
   slug: string
   description: string

@@ -35,7 +35,7 @@ export interface MeResponse {
 /** 登出响应 */
 export interface LogoutResponse {
     /** 登出结果消息 */
-    message: string;
+    loggedOut: boolean;
 }
 
 /** 生成URL Token请求参数 */

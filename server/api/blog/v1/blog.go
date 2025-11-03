@@ -1,8 +1,9 @@
 package v1
 
 import (
-	"github.com/gogf/gf/v2/frame/g"
 	"time"
+
+	"github.com/gogf/gf/v2/frame/g"
 )
 
 // 博客模块 API 定义，遵循 gf gen ctrl 生成规范
@@ -74,7 +75,7 @@ type UpdateRes struct {
 
 // 文章列表查询（分页）
 type ListReq struct {
-	g.Meta     `path:"/blog/articles" tags:"Blog" method:"get" summary:"List blog articles with pagination"`
+	g.Meta     `path:"/blog/articles" tags:"Blog" method:"get" summary:"List blog articles with pagination" noAuth:"true"`
 	Page       int    `json:"page" d:"1"`
 	Size       int    `json:"size" d:"10"`
 	CategoryId int64  `json:"categoryId"`
@@ -121,7 +122,7 @@ type ListRes struct {
 
 // 文章详情
 type DetailReq struct {
-	g.Meta        `path:"/blog/articles/detail" tags:"Blog" method:"get" summary:"Get blog article detail"`
+	g.Meta        `path:"/blog/articles/detail" tags:"Blog" method:"get" summary:"Get blog article detail" noAuth:"true"`
 	Id            int64 `json:"id" v:"required|min:1"`
 	IncrementView bool  `json:"incrementView" d:"true"` // 是否增加浏览次数
 }
@@ -191,7 +192,7 @@ type CreateCategoryRes struct {
 }
 
 type ListCategoriesReq struct {
-	g.Meta `path:"/blog/categories" tags:"Blog" method:"get" summary:"List blog categories"`
+	g.Meta `path:"/blog/categories" tags:"Blog" method:"get" summary:"List blog categories" noAuth:"true"`
 }
 
 type CategoryItem struct {
@@ -213,7 +214,7 @@ type ListCategoriesRes struct {
 
 // 评论管理
 type CreateCommentReq struct {
-	g.Meta         `path:"/blog/comments" tags:"Blog" method:"post" summary:"Create a blog comment"`
+	g.Meta         `path:"/blog/comments" tags:"Blog" method:"post" summary:"Create a blog comment" noAuth:"true"`
 	ArticleId      int64  `json:"articleId" v:"required|min:1"`
 	ParentId       *int64 `json:"parentId"`                             // 父评论ID（支持回复）
 	VisitorName    string `json:"visitorName" v:"required|length:2,50"` // 访客昵称
@@ -228,7 +229,7 @@ type CreateCommentRes struct {
 }
 
 type ListCommentsReq struct {
-	g.Meta    `path:"/blog/comments" tags:"Blog" method:"get" summary:"List blog comments"`
+	g.Meta    `path:"/blog/comments" tags:"Blog" method:"get" summary:"List blog comments" noAuth:"true"`
 	ArticleId int64  `json:"articleId" v:"required|min:1"`
 	Page      int    `json:"page" d:"1"`
 	Size      int    `json:"size" d:"20"`

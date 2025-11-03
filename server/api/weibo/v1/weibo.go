@@ -51,7 +51,7 @@ type UpdateRes struct {
 
 // 列表查询（分页）
 type ListReq struct {
-	g.Meta     `path:"/weibo/posts" tags:"Weibo" method:"get" summary:"List weibo posts with pagination"`
+	g.Meta     `path:"/weibo/posts" tags:"Weibo" method:"get" summary:"List weibo posts with pagination" noAuth:"true"`
 	Page       int    `json:"page" d:"1"`
 	Size       int    `json:"size" d:"10"`
 	Visibility string `json:"visibility" v:"in:public,private"`
@@ -83,7 +83,7 @@ type ListRes struct {
 
 // 详情
 type DetailReq struct {
-	g.Meta `path:"/weibo/posts/detail" tags:"Weibo" method:"get" summary:"Get weibo post detail"`
+	g.Meta `path:"/weibo/posts/detail" tags:"Weibo" method:"get" summary:"Get weibo post detail" noAuth:"true"`
 	Id     int64 `json:"id" v:"required|min:1"`
 }
 
@@ -102,7 +102,7 @@ type DetailRes struct {
 
 // 快照列表
 type SnapshotsReq struct {
-	g.Meta `path:"/weibo/posts/snapshots" tags:"Weibo" method:"get" summary:"List snapshots of a weibo post"`
+	g.Meta `path:"/weibo/posts/snapshots" tags:"Weibo" method:"get" summary:"List snapshots of a weibo post" noAuth:"true"`
 	PostId int64 `json:"postId" v:"required|min:1"`
 	Page   int   `json:"page" d:"1"`
 	Size   int   `json:"size" d:"10"`
@@ -124,7 +124,7 @@ type SnapshotsRes struct {
 
 // 单个快照详情
 type SnapshotReq struct {
-	g.Meta `path:"/weibo/snapshot" tags:"Weibo" method:"get" summary:"Get snapshot detail"`
+	g.Meta `path:"/weibo/snapshot" tags:"Weibo" method:"get" summary:"Get snapshot detail" noAuth:"true"`
 	Id     int64 `json:"id" v:"required|min:1"`
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import {useEffect, useMemo, useState} from "react";
 import {usePathname, useRouter} from "next/navigation";
 import styles from "./Navbar.module.css";
@@ -100,10 +101,26 @@ export default function Navbar() {
             } : undefined}
         >
             <div className={styles.left}>
-                <div className={styles.brand}>
-                    <Image src="/file.svg" alt="logo" width={20} height={20}/>
-                    <span className={styles.siteName}>{SITE_NAME}</span>
-                </div>
+                <Link href="/" style={{ textDecoration: 'none' }}>
+                    <div className={styles.brand} style={{ alignItems: 'center' }}>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            height: '20px',
+                            lineHeight: 0
+                        }}>
+                            <Image src="/jc-logo.png" alt="logo" width={20} height={20}/>
+                        </div>
+                        <span className={styles.siteName} style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            height: '20px',
+                            lineHeight: '20px'
+                        }}>
+                            {SITE_NAME}
+                        </span>
+                    </div>
+                </Link>
                 <span className={styles.title}>{pageTitle}</span>
             </div>
             <div className={styles.right}>

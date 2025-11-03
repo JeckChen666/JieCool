@@ -4,6 +4,7 @@ import Link from "next/link";
 import {useRouter} from "next/navigation";
 import {listPosts, WeiboItem} from "@/lib/weibo";
 import FileThumbnail from "@/components/features/weibo/FileThumbnail";
+import {getToken} from "@/lib/token";
 import {
     Alert,
     Button,
@@ -30,11 +31,15 @@ export default function WeiboListPage() {
     const [page, setPage] = useState(1);
     const [size] = useState(10);
     const [total, setTotal] = useState(0);
+
+    // 检查登录状态
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
     // 筛选条件
     const [keyword, setKeyword] = useState("");
     const [visibilityFilter, setVisibilityFilter] = useState<'all' | 'public' | 'private'>('all');
     const [dateRange, setDateRange] = useState<any[]>([]);
-    // 已应用的筛选条件（点击“搜索”后生效）
+    // 已应用的筛选条件（点击"搜索"后生效）
     const [appliedKeyword, setAppliedKeyword] = useState("");
     const [appliedVisibility, setAppliedVisibility] = useState<'all' | 'public' | 'private'>('all');
     const [appliedDateRange, setAppliedDateRange] = useState<any[]>([]);
@@ -49,6 +54,17 @@ export default function WeiboListPage() {
         scrollLeft: number;
         dragging: boolean
     }>({el: null, startX: 0, scrollLeft: 0, dragging: false});
+
+    // 检查登录状态
+    useEffect(() => {
+        const token = getToken();
+        setIsLoggedIn(!!token);
+        // 未登录时默认只显示公开内容
+        if (!token) {
+            setVisibilityFilter('public');
+            setAppliedVisibility('public');
+        }
+    }, []);
 
     useEffect(() => {
         setLoading(true);
@@ -84,10 +100,10 @@ export default function WeiboListPage() {
 
     const resetFilters = () => {
         setKeyword("");
-        setVisibilityFilter('all');
+        setVisibilityFilter(isLoggedIn ? 'all' : 'public');
         setDateRange([]);
         setAppliedKeyword("");
-        setAppliedVisibility('all');
+        setAppliedVisibility(isLoggedIn ? 'all' : 'public');
         setAppliedDateRange([]);
         setPage(1);
     };
@@ -137,11 +153,13 @@ export default function WeiboListPage() {
         <div style={{padding: 24}}>
             <Space size={16} direction="vertical" style={{width: '100%'}}>
                 <Typography.Title heading={3}>微博列表</Typography.Title>
-                <Space>
-                    <Link href="/weibo/new">
-                        <Button type="primary">发布微博</Button>
-                    </Link>
-                </Space>
+                {isLoggedIn && (
+                    <Space>
+                        <Link href="/weibo/new">
+                            <Button type="primary">发布微博</Button>
+                        </Link>
+                    </Space>
+                )}
 
                 {/* 搜索筛选区域 */}
                 <Card bordered style={{marginTop: 8}}>
@@ -164,10 +182,11 @@ export default function WeiboListPage() {
                             value={visibilityFilter}
                             onChange={(v) => setVisibilityFilter(v as any)}
                             style={{width: 160}}
+                            disabled={!isLoggedIn}
                         >
                             <Select.Option value="all">全部可见性</Select.Option>
                             <Select.Option value="public">公开</Select.Option>
-                            <Select.Option value="private">非公开</Select.Option>
+                            {isLoggedIn && <Select.Option value="private">非公开</Select.Option>}
                         </Select>
                         <Button type="primary" onClick={applySearch}>搜索</Button>
                         <Button onClick={resetFilters}>重置</Button>

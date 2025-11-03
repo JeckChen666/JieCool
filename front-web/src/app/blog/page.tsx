@@ -5,6 +5,7 @@ import { Card, Button, Input, Tag, Pagination, Spin, Empty, Typography, Space, S
 import { IconSearch, IconEdit, IconEye, IconMessage, IconClockCircle, IconSettings } from '@arco-design/web-react/icon'
 import { blogApi } from '@/lib/blog-api'
 import type { BlogCategory } from '@/types/blog'
+import { getToken } from '@/lib/token'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -43,6 +44,16 @@ export default function BlogPage() {
   const [searchKeyword, setSearchKeyword] = useState('')
   const [categories, setCategories] = useState<BlogCategory[]>([])
   const [selectedCategory, setSelectedCategory] = useState<number | undefined>(undefined)
+  // 已应用的搜索条件
+  const [appliedSearchKeyword, setAppliedSearchKeyword] = useState('')
+
+  // 检查登录状态
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    const token = getToken()
+    setIsLoggedIn(!!token)
+  }, [])
 
   const fetchCategories = async () => {
     try {
@@ -59,7 +70,7 @@ export default function BlogPage() {
       const response = await blogApi.getArticles({
         page: currentPage,
         size: pageSize,
-        search: searchKeyword,
+        search: appliedSearchKeyword,
         categoryId: selectedCategory,
         status: 'published',
         ...params
@@ -76,8 +87,14 @@ export default function BlogPage() {
     }
   }
 
-  const handleSearch = (value: string) => {
-    setSearchKeyword(value)
+  const handleSearch = () => {
+    setAppliedSearchKeyword(searchKeyword)
+    setCurrentPage(1)
+  }
+
+  const handleClearSearch = () => {
+    setSearchKeyword('')
+    setAppliedSearchKeyword('')
     setCurrentPage(1)
   }
 
@@ -109,7 +126,7 @@ export default function BlogPage() {
   useEffect(() => {
     fetchCategories()
     fetchArticles()
-  }, [currentPage, searchKeyword, selectedCategory])
+  }, [currentPage, appliedSearchKeyword, selectedCategory])
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
@@ -129,10 +146,15 @@ export default function BlogPage() {
               placeholder="搜索文章..."
               prefix={<IconSearch />}
               value={searchKeyword}
-              onChange={(value) => handleSearch(value)}
+              onChange={(value) => setSearchKeyword(value)}
               allowClear
+              onClear={handleClearSearch}
             />
           </div>
+
+          <Button type="primary" onClick={handleSearch}>
+            搜索
+          </Button>
 
           <div style={{ minWidth: '150px' }}>
             <Select
@@ -150,17 +172,21 @@ export default function BlogPage() {
             </Select>
           </div>
 
-          <Link href="/blog/create">
-            <Button type="primary" icon={<IconEdit />}>
-              写文章
-            </Button>
-          </Link>
+          {isLoggedIn && (
+            <Link href="/blog/create">
+              <Button type="primary" icon={<IconEdit />}>
+                写文章
+              </Button>
+            </Link>
+          )}
 
-          <Link href="/blog/categories">
-            <Button icon={<IconSettings />}>
-              管理分类
-            </Button>
-          </Link>
+          {isLoggedIn && (
+            <Link href="/blog/categories">
+              <Button icon={<IconSettings />}>
+                管理分类
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 

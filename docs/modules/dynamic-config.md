@@ -175,6 +175,354 @@ PROCEDURE ConvertConfigType(value, targetType)
 END PROCEDURE
 ```
 
+## 数据库设计模式
+
+### 1. 键值对配置存储模式
+
+**层级配置键设计**：
+```sql
+-- 主配置表设计
+CREATE TABLE dynamic_configs (
+    id BIGSERIAL PRIMARY KEY,
+    key TEXT NOT NULL,                              -- 配置键（支持层级命名空间）
+    value JSONB NOT NULL DEFAULT '{}'::jsonb,      -- 配置值（JSONB格式）
+    description TEXT,                               -- 配置描述
+    data_type VARCHAR(20) DEFAULT 'string',        -- 数据类型标识
+    namespace TEXT DEFAULT 'default',              -- 命名空间
+    environment TEXT DEFAULT 'production',         -- 环境标识
+    is_encrypted BOOLEAN DEFAULT false,            -- 是否加密存储
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,   -- 扩展元数据
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(key, namespace, environment)
+);
+```
+
+**配置键命名空间**：
+- `key` 字段支持层级结构（如：`auth/dev/jwt_secret`）
+- `namespace` 提供逻辑分组隔离
+- `environment` 支持多环境配置
+- 唯一约束确保配置键不重复
+
+### 2. JSONB灵活值存储模式
+
+**多类型值存储**：
+```sql
+-- 配置值JSONB存储示例
+{
+  "app.name": "JieCool",                    -- 字符串类型
+  "app.debug": true,                        -- 布尔类型
+  "app.port": 8080,                         -- 数字类型
+  "database.pool": {                         -- 对象类型
+    "max_connections": 100,
+    "min_connections": 10
+  },
+  "feature.flags": ["feature1", "feature2"] -- 数组类型
+}
+```
+
+**类型标识和验证**：
+- `data_type` 字段标识配置值类型
+- JSONB支持任意复杂数据结构
+- 应用层进行类型验证和转换
+
+### 3. 版本控制历史模式
+
+**完整变更追踪**：
+```sql
+-- 版本历史表设计
+CREATE TABLE dynamic_config_versions (
+    id BIGSERIAL PRIMARY KEY,
+    config_key TEXT NOT NULL,                   -- 配置键
+    namespace TEXT NOT NULL DEFAULT 'default',
+    environment TEXT NOT NULL DEFAULT 'production',
+    version BIGINT NOT NULL,                    -- 版本号（递增）
+    old_value JSONB NOT NULL DEFAULT '{}'::jsonb, -- 旧配置值
+    new_value JSONB NOT NULL DEFAULT '{}'::jsonb, -- 新配置值
+    change_type VARCHAR(20) NOT NULL,            -- 变更类型
+    change_reason TEXT,                           -- 变更原因
+    operator_id BIGINT,                          -- 操作者ID
+    operator_name TEXT,                          -- 操作者名称
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+**变更类型分类**：
+- `create`：新建配置项
+- `update`：更新配置值
+- `delete`：删除配置项
+- `import`：批量导入
+- `rollback`：版本回滚
+
+### 4. 命名空间隔离模式
+
+**多维度配置隔离**：
+```sql
+-- 配置查询函数（支持命名空间）
+CREATE OR REPLACE FUNCTION get_config(
+    p_key TEXT,
+    p_default_value JSONB DEFAULT '{}'::jsonb,
+    p_namespace TEXT DEFAULT 'default',
+    p_env TEXT DEFAULT 'production'
+) RETURNS JSONB AS $$
+DECLARE
+    result JSONB;
+BEGIN
+    SELECT value INTO result
+    FROM dynamic_configs
+    WHERE key = p_key
+      AND namespace = p_namespace
+      AND environment = p_env;
+
+    IF result IS NULL THEN
+        RETURN p_default_value;
+    END IF;
+
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+**命名空间用途**：
+- `namespace`：业务模块分组（auth、blog、file等）
+- `environment`：环境分组（dev、test、production）
+- 支持跨命名空间配置继承和覆盖
+
+### 5. 批量操作事务模式
+
+**原子性批量更新**：
+```sql
+-- 批量更新配置函数
+CREATE OR REPLACE FUNCTION batch_update_configs(
+    p_updates JSONB,                             -- 更新数据：[{key, value, namespace, env}]
+    p_operator_id BIGINT DEFAULT NULL
+) RETURNS JSONB AS $$
+DECLARE
+    update_record JSONB;
+    result JSONB := '[]'::jsonb;
+    current_version BIGINT;
+BEGIN
+    -- 开始事务
+    FOR update_record IN SELECT * FROM jsonb_array_elements(p_updates) AS t LOOP
+        -- 获取当前版本号
+        SELECT COALESCE(MAX(version), 0) INTO current_version
+        FROM dynamic_config_versions
+        WHERE config_key = (update_record->>'key')
+          AND namespace = COALESCE(update_record->>'namespace', 'default')
+          AND environment = COALESCE(update_record->>'environment', 'production');
+
+        -- 创建版本记录
+        INSERT INTO dynamic_config_versions (
+            config_key, namespace, environment, version,
+            old_value, new_value, change_type, operator_id
+        ) VALUES (
+            update_record->>'key',
+            COALESCE(update_record->>'namespace', 'default'),
+            COALESCE(update_record->>'environment', 'production'),
+            current_version + 1,
+            (SELECT COALESCE(value, '{}'::jsonb) FROM dynamic_configs
+             WHERE key = update_record->>'key'
+               AND namespace = COALESCE(update_record->>'namespace', 'default')
+               AND environment = COALESCE(update_record->>'environment', 'production')),
+            update_record->'value',
+            'update',
+            p_operator_id
+        );
+
+        -- 更新或插入配置
+        INSERT INTO dynamic_configs (key, value, namespace, environment)
+        VALUES (
+            update_record->>'key',
+            update_record->'value',
+            COALESCE(update_record->>'namespace', 'default'),
+            COALESCE(update_record->>'environment', 'production')
+        )
+        ON CONFLICT (key, namespace, environment)
+        DO UPDATE SET
+            value = EXCLUDED.value,
+            updated_at = NOW();
+
+        result := result || jsonb_build_object(
+            'key', update_record->>'key',
+            'status', 'success',
+            'version', current_version + 1
+        );
+    END LOOP;
+
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+### 6. 加密存储安全模式
+
+**敏感配置加密存储**：
+```sql
+-- 加密配置存储和读取
+CREATE OR REPLACE FUNCTION set_encrypted_config(
+    p_key TEXT,
+    p_value TEXT,
+    p_namespace TEXT DEFAULT 'default',
+    p_env TEXT DEFAULT 'production'
+) RETURNS VOID AS $$
+BEGIN
+    -- 应用层加密，数据库存储加密值
+    INSERT INTO dynamic_configs (key, value, is_encrypted, namespace, environment)
+    VALUES (
+        p_key,
+        pgp_sym_encrypt(p_value, current_setting('config.encryption_key')),
+        true,
+        p_namespace,
+        p_env
+    )
+    ON CONFLICT (key, namespace, environment)
+    DO UPDATE SET
+        value = pgp_sym_encrypt(p_value, current_setting('config.encryption_key')),
+        is_encrypted = true,
+        updated_at = NOW();
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_encrypted_config(
+    p_key TEXT,
+    p_namespace TEXT DEFAULT 'default',
+    p_env TEXT DEFAULT 'production'
+) RETURNS TEXT AS $$
+DECLARE
+    encrypted_value JSONB;
+BEGIN
+    SELECT value INTO encrypted_value
+    FROM dynamic_configs
+    WHERE key = p_key AND namespace = p_namespace AND environment = p_env;
+
+    IF encrypted_value IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    -- 解密并返回原始值
+    RETURN pgp_sym_decrypt(encrypted_value::text, current_setting('config.encryption_key'));
+END;
+$$ LANGUAGE plpgsql;
+```
+
+### 7. 配置继承模式
+
+**配置继承逻辑**：
+```sql
+-- 配置继承查询（支持默认值和覆盖）
+CREATE OR REPLACE FUNCTION get_config_with_inheritance(
+    p_key TEXT,
+    p_namespace TEXT DEFAULT 'default',
+    p_env TEXT DEFAULT 'production'
+) RETURNS JSONB AS $$
+DECLARE
+    result JSONB;
+BEGIN
+    -- 查询优先级：具体环境 > 默认环境 > 具体命名空间 > 默认命名空间
+    WITH ordered_configs AS (
+        SELECT value,
+               ROW_NUMBER() OVER (ORDER BY
+                   CASE WHEN environment = p_env THEN 1 ELSE 2 END,
+                   CASE WHEN namespace = p_namespace THEN 1 ELSE 2 END
+               ) as priority
+        FROM dynamic_configs
+        WHERE key = p_key
+          AND (environment = p_env OR environment = 'default')
+          AND (namespace = p_namespace OR namespace = 'default')
+    )
+    SELECT value INTO result FROM ordered_configs WHERE priority = 1;
+
+    RETURN COALESCE(result, '{}'::jsonb);
+END;
+$$ LANGUAGE plpgsql;
+```
+
+### 8. 配置验证模式
+
+**配置验证约束**：
+```sql
+-- 配置数据类型验证
+ALTER TABLE dynamic_configs ADD CONSTRAINT chk_data_type
+CHECK (data_type IN ('string', 'number', 'boolean', 'object', 'array', 'json'));
+
+-- 配置键格式验证
+ALTER TABLE dynamic_configs ADD CONSTRAINT chk_key_format
+CHECK (key ~* '^[a-zA-Z][a-zA-Z0-9_.]*$');
+
+-- 命名空间格式验证
+ALTER TABLE dynamic_configs ADD CONSTRAINT chk_namespace_format
+CHECK (namespace ~* '^[a-z][a-z0-9_-]*$');
+```
+
+### 9. 性能优化索引模式
+
+**多维度索引设计**：
+```sql
+-- 主键唯一索引
+CREATE UNIQUE INDEX idx_dynamic_configs_unique
+ON dynamic_configs(key, namespace, environment);
+
+-- 查询优化索引
+CREATE INDEX idx_dynamic_configs_namespace
+ON dynamic_configs(namespace);
+CREATE INDEX idx_dynamic_configs_environment
+ON dynamic_configs(environment);
+CREATE INDEX idx_dynamic_configs_updated_at
+ON dynamic_configs(updated_at DESC);
+
+-- 版本表索引
+CREATE INDEX idx_config_versions_key_env
+ON dynamic_config_versions(config_key, namespace, environment);
+CREATE INDEX idx_config_versions_created_at
+ON dynamic_config_versions(created_at DESC);
+```
+
+### 10. 清理和维护模式
+
+**自动清理机制**：
+```sql
+-- 清理过期版本历史
+CREATE OR REPLACE FUNCTION cleanup_config_versions(
+    p_keep_days INTEGER DEFAULT 90
+) RETURNS INTEGER AS $$
+DECLARE
+    deleted_count INTEGER;
+BEGIN
+    DELETE FROM dynamic_config_versions
+    WHERE created_at < NOW() - INTERVAL '1 day' * p_keep_days;
+
+    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+    RETURN deleted_count;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 配置数据导出
+CREATE OR REPLACE FUNCTION export_configs(
+    p_namespace TEXT DEFAULT NULL,
+    p_env TEXT DEFAULT NULL
+) RETURNS JSONB AS $$
+DECLARE
+    result JSONB;
+BEGIN
+    SELECT jsonb_agg(
+        jsonb_build_object(
+            'key', key,
+            'value', value,
+            'type', data_type,
+            'namespace', namespace,
+            'environment', environment,
+            'description', description
+        )
+    ) INTO result
+    FROM dynamic_configs
+    WHERE (p_namespace IS NULL OR namespace = p_namespace)
+      AND (p_env IS NULL OR environment = p_env);
+
+    RETURN COALESCE(result, '[]'::jsonb);
+END;
+$$ LANGUAGE plpgsql;
+```
+
 ## 模块功能使用方式
 
 ### 1. 前端界面集成

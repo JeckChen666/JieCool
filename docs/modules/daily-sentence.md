@@ -146,6 +146,270 @@ PROCEDURE ValidateCache()
 END PROCEDURE
 ```
 
+## 数据库设计模式
+
+### 1. 外部数据缓存存储模式
+
+**API响应数据缓存**：
+```sql
+-- 每日一句数据缓存表
+CREATE TABLE daily_sentence_cache (
+    id BIGSERIAL PRIMARY KEY,
+    sentence_date DATE UNIQUE NOT NULL,           -- 日期（唯一）
+    english_content TEXT NOT NULL,                 -- 英文句子内容
+    chinese_translation TEXT,                       -- 中文翻译
+    picture_url TEXT,                               -- 配图URL
+    picture2_url TEXT,                              -- 备用配图URL
+    picture_hash VARCHAR(64),                        -- 图片哈希（用于变化检测）
+    audio_url TEXT,                                 -- 音频URL
+    dateline TEXT,                                  -- 日期信息
+    share_url TEXT,                                 -- 分享链接
+    love_count INTEGER DEFAULT 0,                    -- 点赞数
+    fenxiang TEXT,                                   -- 分享信息
+    translation_speech TEXT,                        -- 语音发音链接
+    picture_speech TEXT,                            -- 图片描述语音
+    content_hash VARCHAR(64),                       -- 内容哈希（用于完整性校验）
+    is_active BOOLEAN DEFAULT true,                -- 是否有效
+    cache_expires_at TIMESTAMPTZ,                   -- 缓存过期时间
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+**缓存生命周期管理**：
+- 按日期唯一键存储当日数据
+- `cache_expires_at` 字段支持灵活的缓存策略
+- `is_active` 字段支持软删除和恢复
+
+### 2. 图片分析数据模式
+
+**图片处理结果存储**：
+```sql
+-- 图片分析结果表
+CREATE TABLE daily_sentence_image_analysis (
+    id BIGSERIAL PRIMARY KEY,
+    sentence_id BIGINT REFERENCES daily_sentence_cache(id) ON DELETE CASCADE,
+    picture_url TEXT NOT NULL,                     -- 原始图片URL
+    picture_hash VARCHAR(64) NOT NULL,             -- 图片哈希（去重用）
+    dominant_color VARCHAR(7) NOT NULL,           -- 主色调（HEX格式）
+    color_palette JSONB,                           -- 调色板（JSON数组）
+    brightness INTEGER,                              -- 亮度值（0-255）
+    saturation DECIMAL(5,2),                        -- 饱和度（0-1）
+    color_scheme JSONB NOT NULL DEFAULT '{}',       -- 完整配色方案
+    contrast_ratio DECIMAL(5,2),                   -- 对比度
+    accessibility_score INTEGER,                     -- 可访问性评分
+    extracted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(picture_hash)
+);
+```
+
+**图片处理性能优化**：
+- `picture_hash` 唯一约束避免重复处理相同图片
+- 分析结果缓存，避免重复计算
+- 支持配色方案的增量更新
+
+### 3. 用户行为日志模式
+
+**访问记录表**：
+```sql
+-- 用户访问行为表
+CREATE TABLE daily_sentence_access_logs (
+    id BIGSERIAL PRIMARY KEY,
+    sentence_id BIGINT REFERENCES daily_sentence_cache(id) ON DELETE CASCADE,
+    access_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    ip_address INET,                                -- 访问者IP
+    user_agent TEXT,                                  -- 用户代理
+    referrer TEXT,                                    -- 来源页面
+    session_id VARCHAR(255),                         -- 会话ID
+    action_type VARCHAR(50),                          -- 操作类型（view/play/share）
+    audio_played BOOLEAN DEFAULT false,              -- 是否播放音频
+    share_platform VARCHAR(50),                       -- 分享平台（如果有的话）
+    device_type VARCHAR(50),                           -- 设备类型（mobile/desktop/tablet）
+    browser_name VARCHAR(100),                          -- 浏览器名称
+    os_name VARCHAR(100),                             -- 操作系统名称
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+**用户行为分析**：
+- 记录用户访问和互动行为
+- 支持音频播放和分享行为追踪
+- 提供设备使用情况统计
+
+### 4. 配色方案管理模式
+
+**配色方案存储**：
+```sql
+-- 配色方案表
+CREATE TABLE daily_sentence_color_schemes (
+    id BIGSERIAL PRIMARY KEY,
+    dominant_color VARCHAR(7) NOT NULL,            -- 主色调
+    color_scheme JSONB NOT NULL DEFAULT '{}',       -- 完整配色方案数据
+    usage_count INTEGER DEFAULT 0,                   -- 使用次数
+    success_rate DECIMAL(5,2) DEFAULT 0.00,          -- 成功率
+    user_feedback INTEGER DEFAULT 0,                  -- 用户反馈（正/负）
+    is_recommended BOOLEAN DEFAULT false,            -- 是否推荐
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+**配色方案优化**：
+- 基于主色调的配色方案数据库
+- 统计配色方案的使用效果
+- 支持用户反馈驱动的优化
+
+### 5. 内容更新历史模式
+
+**版本控制表**：
+```sql
+-- 内容变更历史表
+CREATE TABLE daily_sentence_history (
+    id BIGSERIAL PRIMARY KEY,
+    sentence_date DATE NOT NULL,
+    version INTEGER NOT NULL,                       -- 版本号
+    old_content TEXT,                                   -- 旧内容
+    new_content TEXT NOT NULL,                       -- 新内容
+    change_type VARCHAR(20) NOT NULL,                 -- 变更类型（update/correction/replacement）
+    change_reason TEXT,                                -- 变更原因
+    operator_id BIGINT,                                -- 操作者ID
+    operator_name VARCHAR(100),                          -- 操作者名称
+    approved BOOLEAN DEFAULT false,                   -- 是否审核通过
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uk_sentence_date_version UNIQUE (sentence_date, version)
+);
+```
+
+**内容质量保障**：
+- 记录内容变更历史
+- 支持版本回滚功能
+- 变更原因追溯和审核机制
+
+### 6. 系统监控模式
+
+**系统状态监控**：
+```sql
+-- 系统监控表
+CREATE TABLE daily_sentence_system_metrics (
+    id BIGSERIAL PRIMARY KEY,
+    metric_date DATE NOT NULL,
+    api_requests INTEGER DEFAULT 0,                 -- API请求次数
+    api_successes INTEGER DEFAULT 0,                -- API成功次数
+    api_failures INTEGER DEFAULT 0,                  -- API失败次数
+    cache_hits INTEGER DEFAULT 0,                     -- 缓存命中次数
+    cache_misses INTEGER DEFAULT 0,                    -- 缓存未命中次数
+    image_processing_time INTEGER DEFAULT 0,          -- 图片处理时间（毫秒）
+    color_extraction_success_rate DECIMAL(5,2),       -- 颜色提取成功率
+    audio_play_success_rate DECIMAL(5,2),             -- 音频播放成功率
+    user_interactions INTEGER DEFAULT 0,              -- 用户交互次数
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+**性能指标监控**：
+- API调用成功率监控
+- 缓存效率统计
+- 图片处理性能跟踪
+- 用户体验指标收集
+
+### 7. 错误处理模式
+
+**错误日志表**：
+```sql
+-- 错误处理日志表
+CREATE TABLE daily_sentence_error_logs (
+    id BIGSERIAL PRIMARY KEY,
+    error_type VARCHAR(50) NOT NULL,                 -- 错误类型
+    error_message TEXT NOT NULL,                    -- 错误信息
+    api_endpoint TEXT,                               -- API端点
+    response_code INTEGER,                            -- HTTP响应码
+    retry_count INTEGER DEFAULT 0,                    -- 重试次数
+    sentence_date DATE,                               -- 关联的句子日期
+    ip_address INET,                                 -- 客户端IP
+    user_agent TEXT,                                  -- 用户代理
+    stack_trace TEXT,                                 -- 错误堆栈
+    is_resolved BOOLEAN DEFAULT false,               -- 是否已解决
+    resolved_at TIMESTAMPTZ,                          -- 解决时间
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+**错误分类处理**：
+- API调用错误分类记录
+- 重试机制和错误恢复
+- 错误解决状态跟踪
+
+### 8. 预留扩展模式
+
+**多语言支持预留**：
+```sql
+-- 多语言内容表（预留）
+CREATE TABLE daily_sentence_multilingual (
+    id BIGSERIAL PRIMARY KEY,
+    sentence_date DATE NOT NULL,
+    language_code VARCHAR(10) NOT NULL,               -- 语言代码（en/zh/ja等）
+    content TEXT NOT NULL,                           -- 对应语言内容
+    translation TEXT,                                  -- 翻译内容
+    is_primary BOOLEAN DEFAULT false,                -- 是否为主要语言
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(sentence_date, language_code)
+);
+```
+
+**个性化推荐预留**：
+- 用户偏好学习记录
+- 基于历史的内容推荐
+- 个性化配色方案
+
+### 9. 数据归档模式
+
+**历史数据归档**：
+```sql
+-- 归档表（季度数据）
+CREATE TABLE daily_sentence_archive (
+    id BIGSERIAL PRIMARY KEY,
+    sentence_date DATE NOT NULL,
+    english_content TEXT NOT NULL,
+    chinese_translation TEXT,
+    picture_url TEXT,
+    audio_url TEXT,
+    color_scheme JSONB,
+    access_count INTEGER DEFAULT 0,
+    archive_date DATE DEFAULT CURRENT_DATE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+**数据生命周期管理**：
+- 定期归档历史数据
+- 减日数据备份机制
+- 长期存储和清理策略
+
+### 10. 查询优化模式
+
+**复合索引设计**：
+```sql
+-- 缓存表索引
+CREATE INDEX idx_daily_sentence_cache_date ON daily_sentence_cache(sentence_date);
+CREATE INDEX idx_daily_sentence_cache_expires ON daily_sentence_cache(cache_expires_at);
+CREATE INDEX idx_daily_sentence_cache_active ON daily_sentence_cache(is_active) WHERE is_active = true;
+
+-- 图片分析表索引
+CREATE INDEX idx_image_analysis_hash ON daily_sentence_image_analysis(picture_hash);
+CREATE INDEX idx_image_analysis_color ON daily_sentence_image_analysis(dominant_color);
+
+-- 访问日志索引
+CREATE INDEX idx_access_logs_time ON daily_sentence_access_logs(access_time DESC);
+CREATE INDEX idx_access_logs_sentence ON daily_sentence_access_logs(sentence_id);
+CREATE INDEX idx_access_logs_action ON daily_sentence_access_logs(action_type);
+```
+
+**查询性能优化**：
+- 基于查询模式的复合索引
+- 条件索引优化热点查询
+- 分区表支持大数据量场景
+
 ## 模块功能使用方式
 
 ### 1. 前端界面集成

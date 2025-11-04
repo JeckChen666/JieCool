@@ -1,9 +1,32 @@
 -- 文件存储表重构迁移脚本
+-- ===== 清理现有对象 =====
+
+-- 删除视图
+DROP VIEW IF EXISTS files_with_content;
+
+-- 删除触发器（先删除触发器，再删除函数）
+DROP TRIGGER IF EXISTS update_file_contents_updated_at ON file_contents;
+
+-- 删除函数（使用 CASCADE 处理依赖）
+DROP FUNCTION IF EXISTS create_file_content() CASCADE;
+DROP FUNCTION IF EXISTS update_file_content() CASCADE;
+DROP FUNCTION IF EXISTS cleanup_orphaned_contents() CASCADE;
+
+-- 删除索引
+DROP INDEX IF EXISTS idx_file_contents_created_at;
+DROP INDEX IF EXISTS idx_files_file_content_id;
+
+-- 删除表（使用 CASCADE）
+DROP TABLE IF EXISTS file_contents CASCADE;
+
+-- ===== 创建新对象 =====
+
+
 -- 创建时间: 2025-10-26
 -- 描述: 将文件二进制数据从files表分离到专门的file_contents表，提升查询性能
 
 -- 1. 创建文件内容存储表
-CREATE TABLE IF NOT EXISTS file_contents (
+CREATE TABLE file_contents (
     -- 主键ID，使用BIGSERIAL自增
     id BIGSERIAL PRIMARY KEY,
 
@@ -21,7 +44,7 @@ CREATE TABLE IF NOT EXISTS file_contents (
 );
 
 -- 为file_contents表创建索引
-CREATE INDEX IF NOT EXISTS idx_file_contents_created_at ON file_contents(created_at);
+CREATE INDEX idx_file_contents_created_at ON file_contents(created_at);
 
 -- 添加表注释
 COMMENT ON TABLE file_contents IS '文件内容存储表，用于存储文件和缩略图的二进制数据';
@@ -42,7 +65,7 @@ CREATE TRIGGER update_file_contents_updated_at
 ALTER TABLE files ADD COLUMN IF NOT EXISTS file_content_id BIGINT REFERENCES file_contents(id) ON DELETE RESTRICT;
 
 -- 为file_content_id字段添加索引
-CREATE INDEX IF NOT EXISTS idx_files_file_content_id ON files(file_content_id);
+CREATE INDEX idx_files_file_content_id ON files(file_content_id);
 
 -- 添加注释
 COMMENT ON COLUMN files.file_content_id IS '关联文件内容表ID';

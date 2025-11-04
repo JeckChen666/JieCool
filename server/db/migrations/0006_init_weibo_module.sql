@@ -1,11 +1,37 @@
 -- 微博模块初始化迁移脚本
+-- ===== 清理现有对象 =====
+
+-- 删除触发器（先删除触发器，再删除函数）
+DROP TRIGGER IF EXISTS t_weibo_posts_updated_at ON weibo_posts;
+
+-- 删除函数（使用 CASCADE 处理依赖）
+DROP FUNCTION IF EXISTS set_updated_at() CASCADE;
+
+-- 删除索引
+DROP INDEX IF EXISTS idx_weibo_posts_created_at_desc;
+DROP INDEX IF EXISTS idx_weibo_posts_visibility;
+DROP INDEX IF EXISTS idx_weibo_posts_author_id;
+DROP INDEX IF EXISTS idx_weibo_posts_not_deleted_created_desc;
+DROP INDEX IF EXISTS idx_weibo_assets_post_id_kind;
+DROP INDEX IF EXISTS idx_weibo_assets_post_id_sort;
+DROP INDEX IF EXISTS idx_weibo_snapshots_post_id_version;
+DROP INDEX IF EXISTS idx_weibo_snapshots_created_at_desc;
+
+-- 删除表（按依赖关系逆序删除，使用 CASCADE）
+DROP TABLE IF EXISTS weibo_snapshots CASCADE;
+DROP TABLE IF EXISTS weibo_assets CASCADE;
+DROP TABLE IF EXISTS weibo_posts CASCADE;
+
+-- ===== 创建新对象 =====
+
+
 -- 创建时间: 2025-10-11
 -- 描述: 新增微博主表、资产表、快照表及相关索引与触发器
 
 BEGIN;
 
 -- 1) 主表：weibo_posts（微博内容与元信息）
-CREATE TABLE IF NOT EXISTS weibo_posts (
+CREATE TABLE weibo_posts (
   id BIGSERIAL PRIMARY KEY,
   content TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -42,13 +68,13 @@ BEFORE UPDATE ON weibo_posts
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- 索引
-CREATE INDEX IF NOT EXISTS idx_weibo_posts_created_at_desc ON weibo_posts (created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_weibo_posts_visibility ON weibo_posts (visibility);
-CREATE INDEX IF NOT EXISTS idx_weibo_posts_author_id ON weibo_posts (author_id);
-CREATE INDEX IF NOT EXISTS idx_weibo_posts_not_deleted_created_desc ON weibo_posts (created_at DESC) WHERE is_deleted = false;
+CREATE INDEX idx_weibo_posts_created_at_desc ON weibo_posts (created_at DESC);
+CREATE INDEX idx_weibo_posts_visibility ON weibo_posts (visibility);
+CREATE INDEX idx_weibo_posts_author_id ON weibo_posts (author_id);
+CREATE INDEX idx_weibo_posts_not_deleted_created_desc ON weibo_posts (created_at DESC) WHERE is_deleted = false;
 
 -- 2) 资产表：weibo_assets（图片/附件关联）
-CREATE TABLE IF NOT EXISTS weibo_assets (
+CREATE TABLE weibo_assets (
   id BIGSERIAL PRIMARY KEY,
   post_id BIGINT NOT NULL REFERENCES weibo_posts(id) ON DELETE CASCADE,
   file_id BIGINT NOT NULL,
@@ -69,11 +95,11 @@ ALTER TABLE weibo_assets
     ON DELETE RESTRICT;
 
 -- 索引
-CREATE INDEX IF NOT EXISTS idx_weibo_assets_post_id_kind ON weibo_assets (post_id, kind);
-CREATE INDEX IF NOT EXISTS idx_weibo_assets_post_id_sort ON weibo_assets (post_id, sort_order);
+CREATE INDEX idx_weibo_assets_post_id_kind ON weibo_assets (post_id, kind);
+CREATE INDEX idx_weibo_assets_post_id_sort ON weibo_assets (post_id, sort_order);
 
 -- 3) 快照表：weibo_snapshots（编辑历史）
-CREATE TABLE IF NOT EXISTS weibo_snapshots (
+CREATE TABLE weibo_snapshots (
   id BIGSERIAL PRIMARY KEY,
   post_id BIGINT NOT NULL REFERENCES weibo_posts(id) ON DELETE CASCADE,
   version INT NOT NULL,
@@ -87,7 +113,7 @@ CREATE TABLE IF NOT EXISTS weibo_snapshots (
 COMMENT ON TABLE weibo_snapshots IS '微博快照表：记录每次编辑的历史版本';
 
 -- 索引
-CREATE INDEX IF NOT EXISTS idx_weibo_snapshots_post_id_version ON weibo_snapshots (post_id, version);
-CREATE INDEX IF NOT EXISTS idx_weibo_snapshots_created_at_desc ON weibo_snapshots (created_at DESC);
+CREATE INDEX idx_weibo_snapshots_post_id_version ON weibo_snapshots (post_id, version);
+CREATE INDEX idx_weibo_snapshots_created_at_desc ON weibo_snapshots (created_at DESC);
 
 COMMIT;

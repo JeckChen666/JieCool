@@ -203,3 +203,197 @@ PROCEDURE SoftDeleteFile(fileUuid)
 - `idx_files_created_at`：创建时间索引，用于时间排序
 - `idx_files_deleted_at`：删除时间索引，用于软删除查询
 - `idx_download_logs_file_uuid`：下载日志文件UUID索引
+
+## 数据库设计模式
+
+### 1. 文件内容一体化存储模式
+
+**二进制内容存储**：
+- `file_content BYTEA NOT NULL` - 文件完整内容存储在数据库中
+- `thumbnail_content BYTEA` - 图片缩略图内容存储
+- 避免文件系统依赖，简化备份和迁移
+
+**哈希去重机制**：
+```sql
+-- 基于SHA256哈希的文件去重
+file_hash VARCHAR(64) UNIQUE NOT NULL,  -- 哈希值唯一约束
+-- 查询逻辑：WHERE file_hash = ? AND file_status != 'deleted'
+```
+
+**完整性验证**：
+- 上传时计算SHA256哈希值
+- 下载时可验证文件完整性
+- 支持断点续传校验
+
+### 2. 双重标识符访问模式
+
+**内部ID + 外部UUID**：
+```sql
+-- 内部自增ID，用于数据库关联和性能优化
+id BIGSERIAL PRIMARY KEY,
+-- 外部UUID，用于公开访问和安全隔离
+file_uuid UUID UNIQUE NOT NULL DEFAULT gen_random_uuid()
+```
+
+**访问安全设计**：
+- 内部操作使用 `id` 字段
+- 外部访问使用 `file_uuid` 字段
+- 防止ID遍历攻击和路径猜测
+
+### 3. 缩略图内联存储模式
+
+**缩略图字段设计**：
+```sql
+-- 缩略图相关字段（仅图片文件）
+has_thumbnail BOOLEAN DEFAULT false,     -- 是否有缩略图
+thumbnail_content BYTEA,                 -- 缩略图二进制内容
+thumbnail_width INTEGER,                 -- 缩略图宽度
+thumbnail_height INTEGER,                -- 缩略图高度
+```
+
+**自动处理流程**：
+- 检测MIME类型确定是否为图片
+- 使用imaging库生成缩略图（最大宽度300px）
+- JPEG格式压缩（质量85%）
+- 失败时使用原图作为缩略图
+
+### 4. 软删除状态管理模式
+
+**多维度状态控制**：
+```sql
+-- 文件状态管理
+file_status VARCHAR(20) DEFAULT 'active',  -- active/deleted/archived
+deleted_at TIMESTAMPTZ,                     -- 删除时间戳
+```
+
+**状态转换逻辑**：
+- `active` → `deleted`：软删除，设置 `deleted_at`
+- `deleted` → `active`：恢复，清除 `deleted_at`
+- 查询时过滤已删除文件：`WHERE file_status != 'deleted'`
+
+### 5. 元数据扩展存储模式
+
+**JSONB扩展字段**：
+```sql
+-- 文件扩展元数据（JSONB格式）
+metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+-- 文件分类字段
+file_category VARCHAR(50),                 -- image/document/video/audio/other
+```
+
+**GIN索引优化**：
+```sql
+-- JSONB字段的GIN索引
+CREATE INDEX idx_files_metadata_gin ON files USING GIN(metadata);
+```
+
+**元数据存储内容**：
+- 图片尺寸、拍摄信息（EXIF）
+- 文档创建时间、作者信息
+- 视频时长、分辨率等
+
+### 6. 下载统计日志模式
+
+**统计信息字段**：
+```sql
+-- 文件统计（冗余存储）
+download_count BIGINT DEFAULT 0,         -- 下载次数
+last_download_at TIMESTAMPTZ,             -- 最近下载时间
+```
+
+**详细日志记录**：
+```sql
+-- 下载日志表
+CREATE TABLE file_download_logs (
+    file_id BIGINT REFERENCES files(id),  -- 关联内部ID
+    file_uuid UUID NOT NULL,              -- 冗余UUID便于查询
+    download_ip INET,                     -- 下载者IP
+    download_user_agent TEXT,             -- 用户代理
+    download_referer TEXT,                -- 来源页面
+    download_size BIGINT,                 -- 实际下载大小
+    download_status VARCHAR(20),          -- 下载状态
+    download_time TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+**性能优化策略**：
+- 冗余计数避免实时统计查询
+- 定期批量更新统计信息
+- 日志表用于详细分析
+
+### 7. 复合索引优化模式
+
+**多维度索引设计**：
+```sql
+-- 基础索引
+CREATE INDEX idx_files_file_uuid ON files(file_uuid);
+CREATE INDEX idx_files_file_hash ON files(file_hash);
+CREATE INDEX idx_files_file_status ON files(file_status);
+CREATE INDEX idx_files_created_at ON files(created_at);
+
+-- 复合索引
+CREATE INDEX idx_files_status_category ON files(file_status, file_category);
+CREATE INDEX idx_files_extension_status ON files(file_extension, file_status);
+```
+
+**查询优化策略**：
+- 单字段索引支持基础查询
+- 复合索引支持多条件筛选
+- 覆盖索引减少回表查询
+
+### 8. 外键关联扩展模式
+
+**跨模块关联设计**：
+```sql
+-- 上传者信息预留字段
+uploader_ip INET,                        -- 上传者IP地址
+uploader_user_agent TEXT,                -- 上传者User-Agent
+uploader_id BIGINT,                      -- 上传者用户ID（预留）
+```
+
+**模块集成预留**：
+- `uploader_id` 预留用户系统关联
+- 支持weibo模块引用（weibo_assets.file_id）
+- 支持blog模块引用（特色图片等）
+
+### 9. 自动化触发器模式
+
+**更新时间自动维护**：
+```sql
+-- 更新时间触发器函数
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- 为files表创建触发器
+CREATE TRIGGER update_files_updated_at
+    BEFORE UPDATE ON files
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+```
+
+**自动统计更新**：
+- 下载时自动更新 `download_count`
+- 更新时自动刷新 `updated_at`
+- 删除时自动设置 `deleted_at`
+
+### 10. 预留扩展模式
+
+**文件版本控制预留**：
+- 哈希去重机制为版本控制奠定基础
+- 可扩展文件历史版本表
+- 支持文件变更追踪
+
+**分布式存储预留**：
+- UUID设计支持分布式文件标识
+- 哈希值支持内容寻址存储
+- 可扩展为分布式文件系统
+
+**权限系统预留**：
+- `uploader_id` 字段预留用户关联
+- `file_status` 支持访问控制扩展
+- 可增加访问权限字段

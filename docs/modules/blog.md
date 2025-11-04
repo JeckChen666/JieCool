@@ -668,6 +668,172 @@ const (
 - **状态管理**：React Hooks本地状态管理，未引入复杂的状态管理库
 - **数据流**：简化版数据流，去除了版本控制等复杂逻辑
 
+## 数据库设计模式
+
+### 1. 内容管理分层模式
+
+**文章内容双重存储**：
+- `content` (TEXT) - Markdown原始内容，用于编辑和版本控制
+- `html_content` (TEXT) - HTML渲染内容，用于前端展示，提升渲染性能
+
+**内容状态多维度控制**：
+```sql
+-- 文章状态控制
+status: 'draft' | 'published' | 'private' | 'archive'  -- 发布状态
+is_draft: boolean                                           -- 草稿标识
+is_private: boolean                                        -- 私密标识
+is_top: boolean                                            -- 置顶标识
+deleted_at: timestamptz                                   -- 软删除时间
+```
+
+### 2. 分类标签多对多模式
+
+**层级分类设计**：
+- `parent_id` 自引用实现多级分类树结构
+- `sort_order` 字段支持同级分类排序
+- `article_count` 冗余计数，提升查询性能
+
+**标签扁平化管理**：
+- 独立标签表，支持颜色标识和描述
+- `blog_article_tags` 关联表实现文章与标签多对多关系
+- 标签使用频率统计（`article_count`）
+
+### 3. 版本控制快照模式
+
+**完整版本快照**：
+```sql
+-- 每次编辑保存完整内容快照
+CREATE TABLE blog_article_versions (
+    version_id UUID UNIQUE,           -- 版本唯一标识
+    article_id BIGINT,               -- 关联文章
+    version INTEGER,                 -- 递增版本号
+    change_type VARCHAR(20),         -- create/update/delete
+    diff_data JSONB,                 -- 差异数据（JSON格式）
+    operator_id BIGINT,              -- 操作者ID（预留）
+    title VARCHAR(255),              -- 版本标题
+    content TEXT,                    -- 完整内容快照
+    html_content TEXT                -- 渲染内容快照
+);
+```
+
+**变更追踪机制**：
+- `change_type` 记录操作类型
+- `diff_data` 存储结构化差异数据
+- `operator_id` 预留多用户协作接口
+
+### 4. SEO数据独立存储模式
+
+**元数据专业化管理**：
+```sql
+-- SEO数据独立表设计，支持多平台优化
+CREATE TABLE blog_seo_data (
+    meta_title VARCHAR(255),          -- 页面标题
+    meta_description TEXT,            -- 页面描述
+    meta_keywords TEXT,              -- 关键词
+    og_title VARCHAR(255),           -- Open Graph标题
+    og_description TEXT,             -- Open Graph描述
+    og_image VARCHAR(255),           -- Open Graph图片
+    twitter_title VARCHAR(255),      -- Twitter Card标题
+    twitter_description TEXT,        -- Twitter Card描述
+    json_ld JSONB                    -- JSON-LD结构化数据
+);
+```
+
+**多平台元数据支持**：
+- 标准SEO元数据（title, description, keywords）
+- Open Graph协议（Facebook、LinkedIn社交分享）
+- Twitter Card（Twitter社交分享）
+- JSON-LD结构化数据（搜索引擎理解）
+
+### 5. 评论系统简化模式
+
+**匿名评论设计**：
+```sql
+-- 简化评论系统，支持匿名用户
+CREATE TABLE blog_comments (
+    visitor_name VARCHAR(50),        -- 访客昵称（必需）
+    visitor_email VARCHAR(255),      -- 访客邮箱（可选）
+    visitor_website VARCHAR(255),    -- 访客网站（可选）
+    ip_address INET,                 -- IP地址记录
+    user_agent TEXT,                 -- 用户代理记录
+    status VARCHAR(20),              -- approved/pending/deleted
+    parent_id BIGINT,                -- 支持回复功能
+    is_deleted BOOLEAN DEFAULT false -- 软删除
+);
+```
+
+**审核管理简化**：
+- 仅支持博主删除违规评论
+- 无复杂审批流程
+- IP和User-Agent记录用于安全分析
+
+### 6. 搜索索引优化模式
+
+**PostgreSQL全文搜索**：
+```sql
+-- 创建全文搜索索引
+CREATE INDEX idx_blog_articles_title
+ON blog_articles USING gin(to_tsvector('simple', title));
+CREATE INDEX idx_blog_articles_content
+ON blog_articles USING gin(to_tsvector('simple', content));
+```
+
+**中文搜索配置**：
+```sql
+-- 创建中文全文搜索配置
+CREATE TEXT SEARCH CONFIGURATION chinese (COPY = simple);
+```
+
+**搜索性能优化**：
+- GIN索引提升全文搜索性能
+- 独立搜索配置支持中文分词扩展
+- 标题和内容分离索引，优化搜索权重
+
+### 7. 统计信息冗余模式
+
+**实时统计字段**：
+```sql
+-- 文章统计信息（冗余存储）
+view_count INTEGER DEFAULT 0,      -- 浏览次数
+like_count INTEGER DEFAULT 0,      -- 点赞数
+comment_count INTEGER DEFAULT 0,   -- 评论数
+share_count INTEGER DEFAULT 0,     -- 分享数
+read_time INTEGER DEFAULT 0        -- 预估阅读时间
+```
+
+**分类标签统计**：
+```sql
+-- 分类和标签统计（冗余存储）
+article_count INTEGER DEFAULT 0    -- 文章数量统计
+```
+
+**性能优化策略**：
+- 冗余计数避免实时统计查询
+- 定期批量更新统计数据
+- 缓存热门文章统计信息
+
+### 8. 预留扩展模式
+
+**多用户系统预留**：
+- `author_id BIGINT` 预留作者关联
+- `operator_id BIGINT` 预留操作者追踪
+- 统一用户ID字段设计
+
+**协作编辑预留**：
+- 版本控制表支持多操作者
+- 变更类型和摘要记录
+- 冲突解决机制预留
+
+**权限系统预留**：
+- 文章可见性控制（`is_private`）
+- 评论状态管理（`status`）
+- 软删除机制（`deleted_at`, `is_deleted`）
+
+**功能扩展预留**：
+- `extra JSONB` 字段在weibo模块中，blog模块可类似添加
+- 文章系列、专题分类等扩展接口
+- API版本控制预留
+
 这个博客模块设计将为JieCool项目提供一个专注个人博客需求的轻量级博客系统，核心功能完整但不过度复杂，特别适合个人博主使用。系统支持Markdown文章创作、匿名评论互动、SEO优化等个人博客核心功能，同时保持架构的简洁性和可维护性。
 
 当前实现验证了基础架构的可行性，为后续功能扩展奠定了坚实基础。

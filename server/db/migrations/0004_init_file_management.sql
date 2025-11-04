@@ -1,9 +1,40 @@
 -- 文件管理表迁移脚本
+-- ===== 清理现有对象 =====
+
+-- 删除触发器（先删除触发器，再删除函数）
+DROP TRIGGER IF EXISTS update_files_updated_at ON files;
+DROP TRIGGER IF EXISTS update_file_download_logs_updated_at ON file_download_logs;
+
+-- 删除函数（使用 CASCADE 处理依赖）
+DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;
+DROP INDEX IF EXISTS idx_files_file_uuid;
+DROP INDEX IF EXISTS idx_files_file_hash;
+DROP INDEX IF EXISTS idx_files_file_extension;
+DROP INDEX IF EXISTS idx_files_file_category;
+DROP INDEX IF EXISTS idx_files_file_status;
+DROP INDEX IF EXISTS idx_files_created_at;
+DROP INDEX IF EXISTS idx_files_download_count;
+DROP INDEX IF EXISTS idx_files_status_category;
+DROP INDEX IF EXISTS idx_files_extension_status;
+DROP INDEX IF EXISTS idx_files_metadata_gin;
+DROP INDEX IF EXISTS idx_file_download_logs_file_id;
+DROP INDEX IF EXISTS idx_file_download_logs_file_uuid;
+DROP INDEX IF EXISTS idx_file_download_logs_download_time;
+DROP INDEX IF EXISTS idx_file_download_logs_download_ip;
+-- 删除files表的约束
+-- 删除file_download_logs表的约束
+-- 删除表（按依赖关系逆序删除，使用 CASCADE）
+DROP TABLE IF EXISTS file_download_logs CASCADE;
+DROP TABLE IF EXISTS files CASCADE;
+
+-- ===== 创建新对象 =====
+
+
 -- 创建时间: 2025-01-27
 -- 描述: 实现文件上传下载功能，将文件存储在PostgreSQL数据库中
 
 -- 文件存储主表
-CREATE TABLE IF NOT EXISTS files (
+CREATE TABLE files (
     -- 主键ID，使用BIGSERIAL自增
     id BIGSERIAL PRIMARY KEY,
     
@@ -50,20 +81,20 @@ CREATE TABLE IF NOT EXISTS files (
 );
 
 -- 创建索引优化查询性能
-CREATE INDEX IF NOT EXISTS idx_files_file_uuid ON files(file_uuid);
-CREATE INDEX IF NOT EXISTS idx_files_file_hash ON files(file_hash);
-CREATE INDEX IF NOT EXISTS idx_files_file_extension ON files(file_extension);
-CREATE INDEX IF NOT EXISTS idx_files_file_category ON files(file_category);
-CREATE INDEX IF NOT EXISTS idx_files_file_status ON files(file_status);
-CREATE INDEX IF NOT EXISTS idx_files_created_at ON files(created_at);
-CREATE INDEX IF NOT EXISTS idx_files_download_count ON files(download_count);
+CREATE INDEX idx_files_file_uuid ON files(file_uuid);
+CREATE INDEX idx_files_file_hash ON files(file_hash);
+CREATE INDEX idx_files_file_extension ON files(file_extension);
+CREATE INDEX idx_files_file_category ON files(file_category);
+CREATE INDEX idx_files_file_status ON files(file_status);
+CREATE INDEX idx_files_created_at ON files(created_at);
+CREATE INDEX idx_files_download_count ON files(download_count);
 
 -- 创建复合索引
-CREATE INDEX IF NOT EXISTS idx_files_status_category ON files(file_status, file_category);
-CREATE INDEX IF NOT EXISTS idx_files_extension_status ON files(file_extension, file_status);
+CREATE INDEX idx_files_status_category ON files(file_status, file_category);
+CREATE INDEX idx_files_extension_status ON files(file_extension, file_status);
 
 -- 创建GIN索引用于JSONB元数据查询
-CREATE INDEX IF NOT EXISTS idx_files_metadata_gin ON files USING GIN(metadata);
+CREATE INDEX idx_files_metadata_gin ON files USING GIN(metadata);
 
 -- 添加表注释
 COMMENT ON TABLE files IS '文件存储表，用于存储上传的文件及其元数据';
@@ -106,7 +137,7 @@ CREATE TRIGGER update_files_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 -- 创建文件下载日志表（可选，用于详细的下载统计）
-CREATE TABLE IF NOT EXISTS file_download_logs (
+CREATE TABLE file_download_logs (
     id BIGSERIAL PRIMARY KEY,
     file_id BIGINT NOT NULL REFERENCES files(id) ON DELETE CASCADE,
     file_uuid UUID NOT NULL,                   -- 冗余存储，便于查询
@@ -119,10 +150,10 @@ CREATE TABLE IF NOT EXISTS file_download_logs (
 );
 
 -- 为下载日志表创建索引
-CREATE INDEX IF NOT EXISTS idx_file_download_logs_file_id ON file_download_logs(file_id);
-CREATE INDEX IF NOT EXISTS idx_file_download_logs_file_uuid ON file_download_logs(file_uuid);
-CREATE INDEX IF NOT EXISTS idx_file_download_logs_download_time ON file_download_logs(download_time);
-CREATE INDEX IF NOT EXISTS idx_file_download_logs_download_ip ON file_download_logs(download_ip);
+CREATE INDEX idx_file_download_logs_file_id ON file_download_logs(file_id);
+CREATE INDEX idx_file_download_logs_file_uuid ON file_download_logs(file_uuid);
+CREATE INDEX idx_file_download_logs_download_time ON file_download_logs(download_time);
+CREATE INDEX idx_file_download_logs_download_ip ON file_download_logs(download_ip);
 
 -- 添加下载日志表注释
 COMMENT ON TABLE file_download_logs IS '文件下载日志表，记录详细的下载统计信息';

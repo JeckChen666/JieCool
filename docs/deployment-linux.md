@@ -190,7 +190,13 @@ database:
 # 服务器配置
 server:
   address: ":8080"
-  dumpRouterMap: false
+  openapiPath: "/api.json"
+  swaggerPath: "/swagger"
+  # 静态文件服务配置
+  staticPaths:
+    - path: "/uploads"
+      directory: "public/uploads"
+      listDirectory: false
 
 # 日志配置
 logger:
@@ -198,16 +204,9 @@ logger:
   stdout: true
   path: "./logs"
 
-# JWT 配置
-jwt:
-  secret: "your-jwt-secret-key"
-  expire: 86400
-
-# 文件上传配置
-upload:
-  path: "./uploads"
-  maxSize: 100MB
-  allowedTypes: ["jpg", "jpeg", "png", "gif", "pdf", "doc", "docx", "txt", "zip"]
+# 注意：JWT和文件上传配置通过动态配置系统管理
+# JWT密钥在系统初始化时设置，可通过动态配置修改
+# 文件上传大小限制通过动态配置的 max_file_upload_size_mb 等字段控制
 ```
 
 ### 4. 编译和运行

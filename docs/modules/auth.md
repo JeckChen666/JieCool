@@ -713,6 +713,82 @@ class URLTokenHandler {
 URLTokenHandler.handleURLToken();
 ```
 
+## 数据库设计模式
+
+### 1. 认证数据存储模式
+
+**配置表驱动认证**：鉴权模块不使用独立的用户表，而是基于动态配置系统（`dynamic_configs` 表）存储认证信息：
+
+```sql
+-- 认证相关配置存储在动态配置表中
+-- 核心认证配置项：
+{
+  "core/dev/keyPassword": "管理员密码",
+  "auth/dev/jwt_secret": "JWT签名密钥",
+  "auth/dev/password_updated_at": "密码更新时间戳"
+}
+```
+
+**配置命名空间设计**：
+- `core/<env>/keyPassword` - 登录密码配置
+- `auth/<env>/jwt_secret` - JWT签名密钥
+- `auth/<env>/password_updated_at` - 密码更新时间（用于Token失效判断）
+
+### 2. 无状态会话模式
+
+**JWT Token设计**：
+- 使用 HS256 对称加密算法
+- 包含最小必要信息：`sub`(用户标识), `iat`(签发时间), `exp`(过期时间)
+- 通过动态配置获取签名密钥，支持运行时更新
+
+**时序安全验证**：
+```
+Token签发时间 >= 密码更新时间  => 验证通过
+Token签发时间 < 密码更新时间   => 强制失效
+```
+
+### 3. 多端认证支持模式
+
+**双重Token传递机制**：
+- Header Bearer Token：标准API调用
+- URL Token Parameter：静默登录、跨设备登录、开发调试
+
+**Token提取优先级**：
+1. URL参数 `?token=xxx`（最高优先级）
+2. Authorization Header `Bearer xxx`（兜底机制）
+3. 标记来源类型：`auth.via: "url" | "header"`
+
+### 4. 预留设计模式
+
+**多用户扩展预留**：
+- JWT Claims 中的 `subject` 字段可扩展为用户ID
+- 密码配置支持运行时更新，为未来用户管理系统预留接口
+
+**权限系统预留**：
+- 中间件支持 `noAuth:"true"` 标签，为RBAC权限系统预留
+- 上下文注入机制，为权限验证预留数据接口
+
+**会话管理预留**：
+- Token 可包含会话标识信息
+- 支持多设备同时在线，为设备管理预留
+
+### 5. 安全设计模式
+
+**统一失效机制**：
+- 密码更新时更新 `password_updated_at` 时间戳
+- 所有旧Token在下次验证时自动失效
+- 无需维护黑名单或活跃会话列表
+
+**配置热更新**：
+- JWT密钥支持运行时动态更新
+- 密码修改立即生效，无需重启服务
+- 配置缓存机制确保性能
+
+**时序安全保障**：
+- 使用数据库时间戳确保一致性
+- JWT标准时间验证 + 业务层失效验证
+- 时钟同步容差处理
+
 ## 未来改进
 
 ### 1. 安全增强

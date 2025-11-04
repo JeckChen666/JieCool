@@ -1,9 +1,54 @@
 -- 博客模块数据库表创建脚本
 -- 迁移版本：0009
+-- ===== 清理现有对象 =====
+
+DROP INDEX IF EXISTS idx_blog_articles_author_id;
+DROP INDEX IF EXISTS idx_blog_articles_slug;
+DROP INDEX IF EXISTS idx_blog_articles_status;
+DROP INDEX IF EXISTS idx_blog_articles_created_at;
+DROP INDEX IF EXISTS idx_blog_articles_publish_at;
+DROP INDEX IF EXISTS idx_blog_articles_is_top;
+DROP INDEX IF EXISTS idx_blog_articles_title;
+DROP INDEX IF EXISTS idx_blog_articles_content;
+DROP INDEX IF EXISTS idx_blog_articles_deleted_at;
+DROP INDEX IF EXISTS idx_blog_categories_parent_id;
+DROP INDEX IF EXISTS idx_blog_categories_slug;
+DROP INDEX IF EXISTS idx_blog_categories_is_active;
+DROP INDEX IF EXISTS idx_blog_tags_slug;
+DROP INDEX IF EXISTS idx_blog_tags_is_active;
+DROP INDEX IF EXISTS idx_blog_article_tags_article_id;
+DROP INDEX IF EXISTS idx_blog_article_tags_tag_id;
+DROP INDEX IF EXISTS idx_blog_comments_article_id;
+DROP INDEX IF EXISTS idx_blog_comments_parent_id;
+DROP INDEX IF EXISTS idx_blog_comments_created_at;
+DROP INDEX IF EXISTS idx_blog_comments_status;
+DROP INDEX IF EXISTS idx_blog_comments_is_deleted;
+DROP INDEX IF EXISTS idx_blog_article_versions_article_id;
+DROP INDEX IF EXISTS idx_blog_article_versions_created_at;
+DROP INDEX IF EXISTS idx_blog_seo_data_article_id;
+-- 删除blog_categories表的约束
+-- 删除blog_tags表的约束
+-- 删除blog_articles表的约束
+-- 删除blog_article_tags表的约束
+-- 删除blog_article_versions表的约束
+-- 删除blog_comments表的约束
+-- 删除blog_seo_data表的约束
+-- 删除表（按依赖关系逆序删除，使用 CASCADE）
+DROP TABLE IF EXISTS blog_seo_data CASCADE;
+DROP TABLE IF EXISTS blog_comments CASCADE;
+DROP TABLE IF EXISTS blog_article_versions CASCADE;
+DROP TABLE IF EXISTS blog_article_tags CASCADE;
+DROP TABLE IF EXISTS blog_articles CASCADE;
+DROP TABLE IF EXISTS blog_tags CASCADE;
+DROP TABLE IF EXISTS blog_categories CASCADE;
+
+-- ===== 创建新对象 =====
+
+
 -- 创建时间：2025-10-28
 
 -- 1. 创建博客文章分类表
-CREATE TABLE IF NOT EXISTS blog_categories (
+CREATE TABLE blog_categories (
     id BIGSERIAL PRIMARY KEY,
     category_id UUID UNIQUE NOT NULL DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
@@ -18,7 +63,7 @@ CREATE TABLE IF NOT EXISTS blog_categories (
 );
 
 -- 2. 创建博客标签表
-CREATE TABLE IF NOT EXISTS blog_tags (
+CREATE TABLE blog_tags (
     id BIGSERIAL PRIMARY KEY,
     tag_id UUID UNIQUE NOT NULL DEFAULT gen_random_uuid(),
     name VARCHAR(50) NOT NULL,
@@ -32,7 +77,7 @@ CREATE TABLE IF NOT EXISTS blog_tags (
 );
 
 -- 3. 创建博客文章主表
-CREATE TABLE IF NOT EXISTS blog_articles (
+CREATE TABLE blog_articles (
     id BIGSERIAL PRIMARY KEY,
     article_id UUID UNIQUE NOT NULL DEFAULT gen_random_uuid(),
     title VARCHAR(255) NOT NULL,
@@ -59,7 +104,7 @@ CREATE TABLE IF NOT EXISTS blog_articles (
 );
 
 -- 4. 创建文章标签关联表
-CREATE TABLE IF NOT EXISTS blog_article_tags (
+CREATE TABLE blog_article_tags (
     id BIGSERIAL PRIMARY KEY,
     article_id BIGINT REFERENCES blog_articles(id) ON DELETE CASCADE,
     tag_id BIGINT REFERENCES blog_tags(id) ON DELETE CASCADE,
@@ -68,7 +113,7 @@ CREATE TABLE IF NOT EXISTS blog_article_tags (
 );
 
 -- 5. 创建文章版本表
-CREATE TABLE IF NOT EXISTS blog_article_versions (
+CREATE TABLE blog_article_versions (
     id BIGSERIAL PRIMARY KEY,
     version_id UUID UNIQUE NOT NULL DEFAULT gen_random_uuid(),
     article_id BIGINT REFERENCES blog_articles(id) ON DELETE CASCADE,
@@ -85,7 +130,7 @@ CREATE TABLE IF NOT EXISTS blog_article_versions (
 );
 
 -- 6. 创建博客评论表（简化版）
-CREATE TABLE IF NOT EXISTS blog_comments (
+CREATE TABLE blog_comments (
     id BIGSERIAL PRIMARY KEY,
     comment_id UUID UNIQUE NOT NULL DEFAULT gen_random_uuid(),
     article_id BIGINT REFERENCES blog_articles(id) ON DELETE CASCADE,
@@ -104,7 +149,7 @@ CREATE TABLE IF NOT EXISTS blog_comments (
 );
 
 -- 7. 创建SEO数据表
-CREATE TABLE IF NOT EXISTS blog_seo_data (
+CREATE TABLE blog_seo_data (
     id BIGSERIAL PRIMARY KEY,
     article_id BIGINT REFERENCES blog_articles(id) ON DELETE CASCADE,
     meta_title VARCHAR(255),
@@ -125,42 +170,42 @@ CREATE TABLE IF NOT EXISTS blog_seo_data (
 
 -- 创建索引
 -- 文章表索引
-CREATE INDEX IF NOT EXISTS idx_blog_articles_author_id ON blog_articles(author_id);
-CREATE INDEX IF NOT EXISTS idx_blog_articles_slug ON blog_articles(slug);
-CREATE INDEX IF NOT EXISTS idx_blog_articles_status ON blog_articles(status);
-CREATE INDEX IF NOT EXISTS idx_blog_articles_created_at ON blog_articles(created_at);
-CREATE INDEX IF NOT EXISTS idx_blog_articles_publish_at ON blog_articles(publish_at);
-CREATE INDEX IF NOT EXISTS idx_blog_articles_is_top ON blog_articles(is_top);
-CREATE INDEX IF NOT EXISTS idx_blog_articles_title ON blog_articles USING gin(to_tsvector('simple', title));
-CREATE INDEX IF NOT EXISTS idx_blog_articles_content ON blog_articles USING gin(to_tsvector('simple', content));
-CREATE INDEX IF NOT EXISTS idx_blog_articles_deleted_at ON blog_articles(deleted_at);
+CREATE INDEX idx_blog_articles_author_id ON blog_articles(author_id);
+CREATE INDEX idx_blog_articles_slug ON blog_articles(slug);
+CREATE INDEX idx_blog_articles_status ON blog_articles(status);
+CREATE INDEX idx_blog_articles_created_at ON blog_articles(created_at);
+CREATE INDEX idx_blog_articles_publish_at ON blog_articles(publish_at);
+CREATE INDEX idx_blog_articles_is_top ON blog_articles(is_top);
+CREATE INDEX idx_blog_articles_title ON blog_articles USING gin(to_tsvector('simple', title));
+CREATE INDEX idx_blog_articles_content ON blog_articles USING gin(to_tsvector('simple', content));
+CREATE INDEX idx_blog_articles_deleted_at ON blog_articles(deleted_at);
 
 -- 分类表索引
-CREATE INDEX IF NOT EXISTS idx_blog_categories_parent_id ON blog_categories(parent_id);
-CREATE INDEX IF NOT EXISTS idx_blog_categories_slug ON blog_categories(slug);
-CREATE INDEX IF NOT EXISTS idx_blog_categories_is_active ON blog_categories(is_active);
+CREATE INDEX idx_blog_categories_parent_id ON blog_categories(parent_id);
+CREATE INDEX idx_blog_categories_slug ON blog_categories(slug);
+CREATE INDEX idx_blog_categories_is_active ON blog_categories(is_active);
 
 -- 标签表索引
-CREATE INDEX IF NOT EXISTS idx_blog_tags_slug ON blog_tags(slug);
-CREATE INDEX IF NOT EXISTS idx_blog_tags_is_active ON blog_tags(is_active);
+CREATE INDEX idx_blog_tags_slug ON blog_tags(slug);
+CREATE INDEX idx_blog_tags_is_active ON blog_tags(is_active);
 
 -- 文章标签关联表索引
-CREATE INDEX IF NOT EXISTS idx_blog_article_tags_article_id ON blog_article_tags(article_id);
-CREATE INDEX IF NOT EXISTS idx_blog_article_tags_tag_id ON blog_article_tags(tag_id);
+CREATE INDEX idx_blog_article_tags_article_id ON blog_article_tags(article_id);
+CREATE INDEX idx_blog_article_tags_tag_id ON blog_article_tags(tag_id);
 
 -- 评论表索引
-CREATE INDEX IF NOT EXISTS idx_blog_comments_article_id ON blog_comments(article_id);
-CREATE INDEX IF NOT EXISTS idx_blog_comments_parent_id ON blog_comments(parent_id);
-CREATE INDEX IF NOT EXISTS idx_blog_comments_created_at ON blog_comments(created_at);
-CREATE INDEX IF NOT EXISTS idx_blog_comments_status ON blog_comments(status);
-CREATE INDEX IF NOT EXISTS idx_blog_comments_is_deleted ON blog_comments(is_deleted);
+CREATE INDEX idx_blog_comments_article_id ON blog_comments(article_id);
+CREATE INDEX idx_blog_comments_parent_id ON blog_comments(parent_id);
+CREATE INDEX idx_blog_comments_created_at ON blog_comments(created_at);
+CREATE INDEX idx_blog_comments_status ON blog_comments(status);
+CREATE INDEX idx_blog_comments_is_deleted ON blog_comments(is_deleted);
 
 -- 文章版本表索引
-CREATE INDEX IF NOT EXISTS idx_blog_article_versions_article_id ON blog_article_versions(article_id);
-CREATE INDEX IF NOT EXISTS idx_blog_article_versions_created_at ON blog_article_versions(created_at);
+CREATE INDEX idx_blog_article_versions_article_id ON blog_article_versions(article_id);
+CREATE INDEX idx_blog_article_versions_created_at ON blog_article_versions(created_at);
 
 -- SEO数据表索引
-CREATE INDEX IF NOT EXISTS idx_blog_seo_data_article_id ON blog_seo_data(article_id);
+CREATE INDEX idx_blog_seo_data_article_id ON blog_seo_data(article_id);
 
 -- 添加表注释
 COMMENT ON TABLE blog_categories IS '博客文章分类表';
@@ -211,5 +256,10 @@ INSERT INTO blog_tags (name, slug, description, color) VALUES
 ON CONFLICT (slug) DO NOTHING;
 
 -- 创建全文搜索配置
-CREATE TEXT SEARCH CONFIGURATION IF NOT EXISTS chinese (COPY = simple);
-COMMENT ON TEXT SEARCH CONFIGURATION chinese IS '中文全文搜索配置';
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_ts_config WHERE cfgname = 'chinese') THEN
+        CREATE TEXT SEARCH CONFIGURATION chinese (COPY = simple);
+        COMMENT ON TEXT SEARCH CONFIGURATION chinese IS '中文全文搜索配置';
+    END IF;
+END $$;

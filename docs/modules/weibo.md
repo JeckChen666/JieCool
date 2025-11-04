@@ -449,3 +449,206 @@ const (
     VisibilityCustom  PostVisibility = "custom"   // 自定义
 )
 ```
+
+## 数据库设计模式
+
+### 1. 快照版本控制模式
+
+**完整快照存储**：
+```sql
+-- 微博快照表设计
+CREATE TABLE weibo_snapshots (
+    id BIGSERIAL PRIMARY KEY,
+    post_id BIGINT REFERENCES weibo_posts(id) ON DELETE CASCADE,
+    version INTEGER NOT NULL,                    -- 递增版本号
+    content TEXT NOT NULL,                       -- 完整内容快照
+    snapshot_visibility TEXT NOT NULL,            -- 可见性快照
+    snapshot_meta JSONB,                         -- 快照元数据
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT uk_weibo_snapshots_post_version UNIQUE (post_id, version)
+);
+```
+
+**变更追踪机制**：
+- 每次编辑创建完整快照，不存储差异数据
+- `version` 字段实现线性版本控制
+- `change_type` 记录操作类型（create/update/delete）
+- 支持版本回滚和对比功能
+
+### 2. 资产关联管理模式
+
+**多媒体资产分类存储**：
+```sql
+-- 资产表设计（支持多种媒体类型）
+CREATE TABLE weibo_assets (
+    id BIGSERIAL PRIMARY KEY,
+    post_id BIGINT REFERENCES weibo_posts(id) ON DELETE CASCADE,
+    file_id BIGINT NOT NULL,                     -- 关联文件系统
+    kind TEXT NOT NULL CHECK (kind IN ('image','attachment')),
+    sort_order INTEGER DEFAULT 0,                -- 显示顺序
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 外键约束引用文件系统
+ALTER TABLE weibo_assets
+  ADD CONSTRAINT fk_weibo_assets_file_id
+    FOREIGN KEY (file_id) REFERENCES files (id) ON DELETE RESTRICT;
+```
+
+**跨模块集成设计**：
+- 通过 `file_id` 关联文件管理系统
+- 支持图片和附件两种类型分类
+- `ON DELETE RESTRICT` 确保文件安全性
+
+### 3. 地理位置设备信息模式
+
+**结构化位置存储**：
+```sql
+-- 地理位置和设备信息字段
+lat NUMERIC(10,6),                           -- 纬度（精确到米）
+lng NUMERIC(10,6),                           -- 经度（精确到米）
+city VARCHAR(128),                            -- 城市信息
+device VARCHAR(256),                          -- 设备信息
+ip VARCHAR(64),                              -- IP地址
+extra JSONB                                  -- 扩展元数据
+
+-- 地理坐标约束
+CONSTRAINT chk_lat_range CHECK (lat IS NULL OR (lat >= -90 AND lat <= 90)),
+CONSTRAINT chk_lng_range CHECK (lng IS NULL OR (lng >= -180 AND lng <= 180))
+```
+
+**设备信息采集**：
+- 自动记录User-Agent字符串
+- IP地址用于安全分析
+- JSONB字段存储扩展设备信息
+
+### 4. 可见性权限控制模式
+
+**分层权限设计**：
+```sql
+-- 可见性字段和约束
+visibility TEXT NOT NULL DEFAULT 'public'
+CHECK (visibility IN ('public','private')),
+
+-- 软删除标记
+is_deleted BOOLEAN NOT NULL DEFAULT false
+```
+
+**权限控制逻辑**：
+- `public`：所有人可见
+- `private`：仅自己可见（预留权限扩展）
+- 软删除机制支持数据恢复
+
+### 5. 复合索引优化模式
+
+**多维度查询索引**：
+```sql
+-- 基础索引
+CREATE INDEX idx_weibo_posts_created_at_desc ON weibo_posts (created_at DESC);
+CREATE INDEX idx_weibo_posts_visibility ON weibo_posts (visibility);
+CREATE INDEX idx_weibo_posts_author_id ON weibo_posts (author_id);
+
+-- 条件索引（仅查询未删除记录）
+CREATE INDEX idx_weibo_posts_not_deleted_created_desc
+ON weibo_posts (created_at DESC) WHERE is_deleted = false;
+
+-- 复合索引
+CREATE INDEX idx_weibo_assets_post_id_kind ON weibo_posts (post_id, kind);
+CREATE INDEX idx_weibo_assets_post_id_sort ON weibo_posts (post_id, sort_order);
+```
+
+**性能优化策略**：
+- 条件索引减少已删除数据查询
+- 复合索引支持多条件筛选
+- 时间降序索引优化时间线查询
+
+### 6. 自动化触发器模式
+
+**更新时间自动维护**：
+```sql
+-- 更新时间触发器函数
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 为微博表创建触发器
+CREATE TRIGGER t_weibo_posts_updated_at
+BEFORE UPDATE ON weibo_posts
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+```
+
+### 7. 扩展元数据存储模式
+
+**JSONB扩展字段**：
+```sql
+-- 扩展元数据存储
+extra JSONB,                                   -- 微博扩展数据
+snapshot_meta JSONB,                          -- 快照元数据
+
+-- GIN索引支持JSONB查询
+CREATE INDEX idx_weibo_posts_extra_gin ON weibo_posts USING GIN(extra);
+```
+
+**灵活扩展设计**：
+- 支持任意扩展字段存储
+- JSONB类型支持高效查询
+- GIN索引优化JSONB检索性能
+
+### 8. 级联删除安全模式
+
+**级联删除设计**：
+```sql
+-- 快照表级联删除
+CREATE TABLE weibo_snapshots (
+    post_id BIGINT REFERENCES weibo_posts(id) ON DELETE CASCADE
+);
+
+-- 资产表级联删除
+CREATE TABLE weibo_assets (
+    post_id BIGINT REFERENCES weibo_posts(id) ON DELETE CASCADE
+);
+```
+
+**数据一致性保障**：
+- 主记录删除时自动清理关联数据
+- 避免孤儿数据产生
+- 维护数据库完整性
+
+### 9. 唯一约束防重复模式
+
+**业务唯一性约束**：
+```sql
+-- 快照版本唯一性
+CONSTRAINT uk_weibo_snapshots_post_version UNIQUE (post_id, version)
+```
+
+**数据完整性保障**：
+- 防止同一版本重复快照
+- 确保版本号唯一性
+- 维护业务逻辑一致性
+
+### 10. 预留扩展模式
+
+**权限系统扩展预留**：
+- `visibility` 字段支持更多权限级别
+- `author_id` 预留多用户系统关联
+- `extra` 字段支持权限扩展配置
+
+**互动功能预留**：
+- 预留点赞、评论、分享统计字段
+- 支持后续互动模块集成
+- JSONB字段支持复杂互动数据
+
+**搜索功能预留**：
+- JSONB扩展字段支持搜索标签
+- 地理位置字段支持地域搜索
+- 设备信息支持行为分析
+
+**内容审核预留**：
+- `is_deleted` 字段可扩展为内容状态
+- 支持审核状态、敏感词过滤等
+- JSONB字段支持审核元数据

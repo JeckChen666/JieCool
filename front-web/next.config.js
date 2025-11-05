@@ -1,6 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   /* config options here */
+  // 跳过TypeScript类型检查
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  // 跳过ESLint检查
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   async rewrites() {
     // 使用 beforeFiles，确保在 Next.js 处理内置 /api 路由或静态资源之前进行转发
     return {

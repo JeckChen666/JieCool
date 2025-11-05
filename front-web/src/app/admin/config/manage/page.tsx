@@ -3,7 +3,7 @@ import React, {useEffect, useMemo, useState} from "react";
 import {useRouter} from "next/navigation";
 import {Button, Form, Input, Message, Modal, Select, Space, Switch, Table, Tag,} from "@arco-design/web-react";
 import {authApi} from "@/lib/auth-api";
-import {configApi, ConfigItem, ConfigVersion} from "@/lib/config-api";
+import {configApi, ConfigItem, ConfigVersion, ConfigDeleteRequest} from "@/lib/config-api";
 
 const enabledOptions = [
     {label: "全部", value: ""},

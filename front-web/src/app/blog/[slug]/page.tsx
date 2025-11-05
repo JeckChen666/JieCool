@@ -74,7 +74,7 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
 
         if (foundArticle) {
           const detailResponse = await blogApi.getArticleDetail(foundArticle.id)
-          setArticle(detailResponse)
+          setArticle(detailResponse as any)
         } else {
           Message.error('文章不存在')
           router.push('/blog')

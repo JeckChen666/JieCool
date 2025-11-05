@@ -1,12 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Form, Input, Button, Space, Card, Message, Typography } from "@arco-design/web-react";
 import { setToken } from "@/lib/token";
 import { authApi, type LoginRequest } from "@/lib/auth-api";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
   const params = useSearchParams();
   const [loading, setLoading] = React.useState(false);
@@ -117,5 +117,15 @@ export default function LoginPage() {
         </Space>
       </Card>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+      <div>Loading...</div>
+    </div>}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

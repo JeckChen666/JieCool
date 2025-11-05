@@ -34,8 +34,16 @@ var (
 			// 启动文件清理调度器
 			service.StartCleanupScheduler(ctx)
 			g.Log().Info(ctx, "文件清理调度器已启动")
+			swaggerEnabled, swaggerErr := g.Cfg().Get(ctx, "swagger.enabled")
+			if swaggerErr == nil && !swaggerEnabled.Bool() {
+				swaggerPath, _ := g.Cfg().Get(ctx, "swagger.swaggerPath")
+				openapiPath, _ := g.Cfg().Get(ctx, "swagger.openapiPath")
+				s.SetSwaggerPath(swaggerPath.String())
+				s.SetOpenApiPath(openapiPath.String())
+			}
 			s.Use(ghttp.MiddlewareCORS)
 			s.Group("/", func(group *ghttp.RouterGroup) {
+				group.Hook(s.GetOpenApiPath(), ghttp.HookBeforeServe, openApiBasicAuth)
 				//group.Middleware(ghttp.MiddlewareCORS)
 				group.Middleware(ghttp.MiddlewareHandlerResponse)
 				group.Middleware(middleware.AccessLog)
@@ -56,3 +64,16 @@ var (
 		},
 	}
 )
+
+func openApiBasicAuth(r *ghttp.Request) {
+	enabled, err := g.Cfg().Get(r.GetCtx(), "swagger.auth.enabled")
+	if err != nil || !enabled.Bool() {
+		return
+	}
+	username, _ := g.Cfg().Get(r.GetCtx(), "swagger.auth.username")
+	password, _ := g.Cfg().Get(r.GetCtx(), "swagger.auth.password")
+	if !r.BasicAuth(username.String(), password.String(), "Restricted") {
+		r.ExitAll()
+		return
+	}
+}

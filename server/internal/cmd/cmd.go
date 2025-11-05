@@ -51,7 +51,6 @@ var (
 					weibo.NewV1(),
 				)
 			})
-			s.SetPort(8080)
 			s.Run()
 			return nil
 		},

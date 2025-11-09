@@ -107,34 +107,34 @@ host    all             all             127.0.0.1/32            md5
 sudo systemctl restart postgresql
 ```
 
-### 4. 配置应用
+### 4. 配置后端
 
-#### 创建配置文件
+#### 修改配置文件
+项目的配置文件位于 `server/manifest/config/config.yaml`。
+
+**关键配置项需要修改**:
 ```bash
-# 在项目根目录创建 config.env
-cat > config.env << EOF
-# 数据库配置
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=jiecool
-DB_USER=jiecool
-DB_PASSWORD=your_secure_password
+# 编辑配置文件
+vim server/manifest/config/config.yaml
+```
 
-# 服务器配置
-BACKEND_PORT=8080
-FRONTEND_PORT=3000
-DOMAIN=localhost
+**需要修改的配置**:
+```yaml
+database:
+  default:
+    # 修改数据库连接串
+    # 格式: "pgsql:用户名:密码@tcp(主机:端口)/数据库名"
+    link: "pgsql:jiecool:your_secure_password@tcp(localhost:5432)/JieCool"
+    debug: false  # 生产环境建议关闭
 
-# 部署用户配置
-DEPLOY_USER=jiecool
+server:
+  address: ":8080"  # 后端端口
+  openapiPath: "/api.json"
+  swaggerPath: "/swagger"
 
-# 其他配置
-LOG_LEVEL=info
-ENABLE_SSL=false
-TIMEZONE=Asia/Shanghai
-MAX_UPLOAD_SIZE=100MB
-BACKUP_RETENTION_DAYS=30
-EOF
+logger:
+  level: "info"  # 生产环境建议使用 info 或 warn
+  stdout: true
 ```
 
 ### 5. 编译后端
@@ -170,9 +170,26 @@ go build -o main .
 # 然后将 main 文件上传到 Linux 服务器
 ```
 
+#### 方式 3: 使用 GoFrame 工具
+```bash
+cd server
+
+# 开发模式运行（推荐，支持热重载）
+gf run main.go
+
+# 构建生产版本
+gf build
+
+# 生成代码
+gf gen ctrl      # 生成控制器代码
+gf gen dao       # 生成数据访问层代码
+gf gen service   # 生成服务接口
+gf gen enums     # 生成枚举
+```
+
 ### 6. 构建前端
 
-#### 方式 1: 在服务器上构建
+#### 在服务器上构建
 ```bash
 # 进入前端目录
 cd front-web
@@ -180,47 +197,230 @@ cd front-web
 # 安装依赖
 npm install
 
-# 构建生产版本
+# 构建生产版本 (SSR模式)
 npm run build
 
 # 验证构建结果
-ls -la out/  # 或 ls -la .next/
+ls -la .next/  # SSR 模式构建到 .next 目录
 ```
 
-#### 方式 2: 在本地构建后上传
+#### 构建验证
+构建成功后会看到 `.next/` 目录包含：
+- `server/` - Next.js 服务器文件
+- `static/` - 静态资源
+- 各种清单和配置文件
+
+**重要**: SSR 模式不会生成 `out/` 静态目录，而是需要运行 Next.js 服务器。
+
+### 7. 启动前端服务器 (SSR模式)
+
+#### 重要说明
+您的 Next.js 项目配置为 **SSR (Server-Side Rendering)** 模式，不是静态导出。需要运行 Next.js 服务器。
+
+#### 启动 Next.js 服务器
 ```bash
-# 在本地执行
+# 进入前端目录
 cd front-web
-npm run build
 
-# 将构建结果 (out 或 .next 目录) 上传到服务器
+# 开发模式启动 (用于测试)
+npm run dev
+
+# 或者生产模式启动
+npm start
 ```
 
-### 7. 配置后端
+#### 使用 PM2 管理前端进程 (推荐)
+
+PM2 是一个流行的 Node.js 应用进程管理器，具有进程守护、日志管理、负载均衡等功能。
+
+##### 安装 PM2
+```bash
+# 全局安装 PM2
+npm install -g pm2
+
+# 验证安装
+pm2 --version
+```
+
+##### 启动前端服务
+```bash
+# 进入前端目录
+cd front-web
+
+# 启动前端服务（生产模式）
+pm2 start npm --name "jiecool-frontend" -- start
+
+# 或者使用更详细的配置
+pm2 start npm --name "jiecool-frontend" -- start -- --port 3000
+```
+
+##### PM2 常用管理命令
+```bash
+# 查看所有进程状态
+pm2 status
+pm2 list
+
+# 查看特定进程信息
+pm2 show jiecool-frontend
+
+# 启动/停止/重启进程
+pm2 start jiecool-frontend
+pm2 stop jiecool-frontend
+pm2 restart jiecool-frontend
+pm2 delete jiecool-frontend    # 删除进程
+
+# 实时查看日志
+pm2 logs jiecool-frontend
+pm2 logs jiecool-frontend --lines 100  # 查看最近100行日志
+pm2 logs --raw                    # 查看所有进程日志
+
+# 监控 CPU 和内存使用
+pm2 monit
+
+# 重载应用（零停机重载）
+pm2 reload jiecool-frontend
+```
+
+##### 创建 PM2 配置文件
+为了更好的管理，可以创建 `ecosystem.config.js` 配置文件：
 
 ```bash
-# 进入服务器目录
-cd server
-
-# 更新后端配置文件
-vim manifest/config/config.yaml
-
-# 关键配置示例:
-server:
-  address: ":8080"
-  dumpRouterMap: false
-
-database:
-  default:
-    link: "pgsql:jiecool:your_secure_password@tcp(localhost:5432)/jiecool"
-    debug: true
-
-logger:
-  level: "info"
-  stdout: true
+# 在 front-web 目录下创建配置文件
+vim ecosystem.config.js
 ```
 
-### 8. 配置 Nginx
+配置文件内容：
+```javascript
+module.exports = {
+  apps: [{
+    name: 'jiecool-frontend',
+    script: 'npm',
+    args: 'start',
+    cwd: './front-web',
+    instances: 1,           // 进程实例数量
+    autorestart: true,      // 自动重启
+    watch: false,           // 不监听文件变化（生产环境推荐）
+    max_memory_restart: '1G', // 内存超过 1GB 时重启
+    env: {
+      NODE_ENV: 'production',
+      PORT: 3000
+    },
+    error_file: './logs/err.log',
+    out_file: './logs/out.log',
+    log_file: './logs/combined.log',
+    time: true,             // 日志包含时间戳
+    env_development: {
+      NODE_ENV: 'development',
+      PORT: 3000
+    },
+    env_production: {
+      NODE_ENV: 'production',
+      PORT: 3000
+    }
+  }]
+};
+```
+
+使用配置文件启动：
+```bash
+# 使用配置文件启动
+pm2 start ecosystem.config.js
+
+# 指定环境启动
+pm2 start ecosystem.config.js --env production
+pm2 start ecosystem.config.js --env development
+```
+
+##### 设置开机自启
+```bash
+# 生成开机自启脚本
+pm2 startup
+
+# 根据提示执行生成的命令（通常需要 sudo 权限）
+# 例如：sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u jiecool --hp /home/jiecool
+
+# 保存当前进程列表
+pm2 save
+
+# 禁用开机自启
+pm2 unstartup
+```
+
+##### 日志管理
+```bash
+# 查看日志文件位置
+pm2 show jiecool-frontend | grep "log file path"
+
+# 清理日志
+pm2 flush jiecool-frontend  # 清理指定进程日志
+pm2 flush                   # 清理所有进程日志
+
+# 日志轮转配置
+pm2 install pm2-logrotate  # 安装日志轮转模块
+```
+
+##### 性能监控
+```bash
+# 实时监控面板
+pm2 monit
+
+# 查看详细报告
+pm2 report
+
+# 查看进程树
+pm2 tree
+```
+
+##### 进程集群模式
+如果需要提高性能，可以启用集群模式：
+```javascript
+// 修改 ecosystem.config.js
+module.exports = {
+  apps: [{
+    name: 'jiecool-frontend',
+    script: 'npm',
+    args: 'start',
+    instances: 'max',        // 使用所有 CPU 核心
+    exec_mode: 'cluster',    // 集群模式
+    // ... 其他配置
+  }]
+};
+```
+
+##### 故障排查
+```bash
+# 查看进程详细信息
+pm2 show jiecool-frontend
+
+# 查看最近的错误日志
+pm2 logs jiecool-frontend --err --lines 50
+
+# 查看最近的输出日志
+pm2 logs jiecool-frontend --out --lines 50
+
+# 重新生成进程列表
+pm2 resurrect
+
+# 重置 PM2 元数据
+pm2 reset jiecool-frontend
+```
+
+##### PM2 环境变量配置
+可以通过环境变量控制 PM2 行为：
+```bash
+# 设置 PM2 日志级别
+export PM2_LOG_DATE_FORMAT="YYYY-MM-DD HH:mm:ss Z"
+
+# 设置 PM2 家目录
+export PM2_HOME="/custom/pm2/path"
+
+# 启动时应用环境变量
+PM2_APP_NAME="jiecool-frontend" pm2 start npm -- start
+```
+
+### 8. 配置 Nginx (SSR模式)
+
+由于您的项目是 SSR 模式，Nginx 需要配置为反向代理，而不是静态文件服务。
 
 ```bash
 # 创建 Nginx 配置文件
@@ -231,24 +431,29 @@ sudo vim /etc/nginx/sites-available/jiecool
 ```nginx
 server {
     listen 80;
-    server_name localhost;
+    server_name localhost;  # 修改为您的域名
 
-    # 前端静态文件
+    # Next.js SSR 前端代理
     location / {
-        root /path/to/JieCool/front-web/out;  # 或 .next 目录
-        index index.html index.htm;
-        try_files $uri $uri/ /index.html;
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
 
-        # 静态资源缓存
-        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
-            expires 1y;
-            add_header Cache-Control "public, immutable";
-        }
+        # 超时设置
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
     }
 
-    # API 代理
+    # API 代理到后端服务
     location /api/ {
-        proxy_pass http://127.0.0.1:8080/;
+        proxy_pass http://127.0.0.1:8080/;  # 注意端口与后端配置一致
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -265,6 +470,19 @@ server {
 
         # 文件上传大小限制
         client_max_body_size 100M;
+    }
+
+    # Next.js API 和特殊路由
+    location ~ ^/(api|_next|__webpack|favicon|manifest|robots\.txt|sitemap\.xml) {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
     }
 
     # 安全头
@@ -295,6 +513,7 @@ sudo systemctl restart nginx
 
 ### 9. 创建系统服务
 
+#### 后端服务
 ```bash
 # 创建 systemd 服务文件
 sudo vim /etc/systemd/system/jiecool-backend.service
@@ -311,28 +530,28 @@ Wants=postgresql.service
 Type=simple
 User=root
 Group=root
-WorkingDirectory=/path/to/JieCool/server
-ExecStart=/path/to/JieCool/server/main
+WorkingDirectory=/app/jiecool/JieCool/server
+ExecStart=/app/jiecool/JieCool/server/main
 Restart=always
 RestartSec=5
-Environment=GO_ENV=production
-Environment=GIN_MODE=release
+Environment=GF_GCFG_FILE=config.yaml
 
 # 日志配置
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=jiecool-backend
 
-# 安全配置
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=/path/to/JieCool/logs /path/to/JieCool/uploads
+# 文件权限配置
+ReadWritePaths=/app/jiecool/JieCool/logs /app/jiecool/JieCool/uploads /app/jiecool/JieCool/server/manifest/config
 
 [Install]
 WantedBy=multi-user.target
 ```
+
+**重要说明**:
+- `WorkingDirectory` 和 `ExecStart` 必须使用绝对路径
+- 移除了过于严格的安全配置，避免权限问题
+- 根据你的实际路径 `/app/jiecool/JieCool/` 进行配置
 
 启动服务:
 ```bash
@@ -356,26 +575,35 @@ sudo systemctl status jiecool-backend
 # 检查后端服务
 sudo systemctl status jiecool-backend
 
+# 检查前端服务 (如果使用 PM2)
+pm2 status jiecool-frontend
+
 # 检查 Nginx 服务
 sudo systemctl status nginx
 
 # 检查端口监听
-sudo netstat -tlnp | grep -E ":80|:8080|:5432"
+sudo netstat -tlnp | grep -E ":80|:3000|:8080|:5432"
 ```
 
-#### 测试 API
+#### 测试服务
 ```bash
-# 测试健康检查
+# 测试后端健康检查
 curl http://localhost:8080/api/health
 
 # 测试前端访问
 curl -I http://localhost
+
+# 测试前端页面渲染
+curl http://localhost | head -20
 ```
 
 #### 查看日志
 ```bash
 # 查看后端日志
 sudo journalctl -u jiecool-backend -f
+
+# 查看前端日志 (如果使用 PM2)
+pm2 logs jiecool-frontend
 
 # 查看 Nginx 日志
 sudo tail -f /var/log/nginx/access.log
@@ -386,8 +614,8 @@ sudo tail -f /var/log/nginx/error.log
 
 ### 配置域名
 1. 将域名 A 记录指向服务器 IP
-2. 修改 `config.env` 中的 `DOMAIN=your-domain.com`
-3. 重新生成 Nginx 配置并重启服务
+2. 修改 Nginx 配置文件中的 `server_name` 为您的域名
+3. 重新加载 Nginx 配置并重启服务
 
 ### 配置 HTTPS (使用 Let's Encrypt)
 ```bash
@@ -411,15 +639,29 @@ sudo crontab -e
 
 ### 常用管理命令
 ```bash
-# 服务管理
-sudo systemctl start jiecool-backend      # 启动服务
-sudo systemctl stop jiecool-backend       # 停止服务
-sudo systemctl restart jiecool-backend    # 重启服务
-sudo systemctl status jiecool-backend     # 查看状态
+# 后端服务管理
+sudo systemctl start jiecool-backend      # 启动后端服务
+sudo systemctl stop jiecool-backend       # 停止后端服务
+sudo systemctl restart jiecool-backend    # 重启后端服务
+sudo systemctl status jiecool-backend     # 查看后端状态
+
+# 前端服务管理 (PM2)
+pm2 start jiecool-frontend                 # 启动前端服务
+pm2 stop jiecool-frontend                  # 停止前端服务
+pm2 restart jiecool-frontend               # 重启前端服务
+pm2 reload jiecool-frontend                # 零停机重载
+pm2 delete jiecool-frontend                # 删除前端进程
+pm2 status jiecool-frontend                # 查看前端状态
+pm2 show jiecool-frontend                 # 查看前端详细信息
+pm2 monit                                  # 实时监控面板
 
 # 日志查看
-sudo journalctl -u jiecool-backend -f     # 查看实时日志
-sudo journalctl -u jiecool-backend -n 100 # 查看最近100行
+sudo journalctl -u jiecool-backend -f     # 查看后端实时日志
+sudo journalctl -u jiecool-backend -n 100 # 查看后端最近100行
+pm2 logs jiecool-frontend                  # 查看前端实时日志
+pm2 logs jiecool-frontend --lines 100      # 查看前端最近100行
+pm2 logs jiecool-frontend --err            # 只查看错误日志
+pm2 flush jiecool-frontend                 # 清理前端日志
 
 # 数据库备份
 sudo -u postgres pg_dump jiecool > backup_$(date +%Y%m%d_%H%M%S).sql
@@ -469,10 +711,10 @@ sudo systemctl restart postgresql
 #### 1. 后端服务无法启动
 ```bash
 # 检查配置文件
-cat /path/to/JieCool/server/manifest/config/config.yaml
+cat /path/to/JieCool/server/manifest/config/config.prod.yaml
 
 # 检查二进制文件
-file /path/to/JieCool/server/main
+file /path/to/JieCool/server/jiecool-server-prod
 
 # 检查数据库连接
 sudo -u postgres psql -h localhost -U jiecool -d jiecool -c "SELECT 1;"
@@ -486,11 +728,31 @@ sudo journalctl -u jiecool-backend -n 50
 # 检查 Nginx 配置
 sudo nginx -t
 
-# 检查前端文件
-ls -la /path/to/JieCool/front-web/out/
+# 检查前端服务状态
+pm2 status jiecool-frontend
+pm2 show jiecool-frontend        # 查看详细信息
+
+# 检查前端是否正常运行
+curl http://localhost:3000
+
+# 检查 Next.js 构建文件
+ls -la /path/to/JieCool/front-web/.next/
+
+# 检查端口占用
+sudo netstat -tlnp | grep 3000
 
 # 检查 Nginx 错误日志
 sudo tail -f /var/log/nginx/error.log
+
+# 检查前端日志
+pm2 logs jiecool-frontend --lines 50
+pm2 logs jiecool-frontend --err   # 只看错误日志
+
+# 重启前端服务
+pm2 restart jiecool-frontend
+
+# 查看前端进程资源使用
+pm2 monit
 ```
 
 #### 3. 数据库连接失败
@@ -511,20 +773,129 @@ sudo -u postgres psql -c "\du"
 #### 4. 端口冲突
 ```bash
 # 查看端口占用
-sudo netstat -tlnp | grep 8080
+sudo netstat -tlnp | grep -E ":3000|:8080"
 
 # 杀死占用端口的进程
 sudo kill -9 <PID>
 
 # 或者修改配置文件中的端口
-vim config.env
+vim server/manifest/config/config.yaml  # 修改后端端口
+# 修改前端端口需要在 front-web/package.json 中修改
 ```
 
 ### 日志文件位置
 - **后端日志**: `sudo journalctl -u jiecool-backend`
+- **前端日志**: `pm2 logs jiecool-frontend` 或 PM2 日志目录
 - **Nginx 日志**: `/var/log/nginx/`
 - **PostgreSQL 日志**: `/var/log/postgresql/`
-- **应用日志**: `/path/to/JieCool/logs/` (如果配置了文件日志)
+- **应用日志**: `/app/jiecool/JieCool/logs/` (如果配置了文件日志)
+
+### systemd 服务故障排查
+
+如果后端服务无法启动，按以下步骤排查：
+
+#### 1. 检查服务状态和日志
+```bash
+# 查看服务详细状态
+sudo systemctl status jiecool-backend -l
+
+# 查看服务日志
+sudo journalctl -u jiecool-backend -n 50
+
+# 实时查看日志
+sudo journalctl -u jiecool-backend -f
+
+# 查看系统日志中的相关信息
+sudo journalctl -f | grep jiecool-backend
+```
+
+#### 2. 验证二进制文件和路径
+```bash
+# 检查二进制文件是否存在且有执行权限
+ls -la /app/jiecool/JieCool/server/main
+
+# 如果没有执行权限，添加权限
+sudo chmod +x /app/jiecool/JieCool/server/main
+
+# 手动测试运行（如果成功，说明程序本身没问题）
+cd /app/jiecool/JieCool/server
+./main
+```
+
+#### 3. 检查配置文件权限
+```bash
+# 检查配置文件权限
+ls -la /app/jiecool/JieCool/server/manifest/config/config.yaml
+
+# 确保配置文件可读
+sudo chmod 644 /app/jiecool/JieCool/server/manifest/config/config.yaml
+```
+
+#### 4. 重新配置服务
+如果服务配置有问题，重新创建：
+
+```bash
+# 停止并禁用现有服务
+sudo systemctl stop jiecool-backend
+sudo systemctl disable jiecool-backend
+
+# 删除旧的服务文件
+sudo rm -f /etc/systemd/system/jiecool-backend.service
+
+# 重新创建服务文件
+sudo vim /etc/systemd/system/jiecool-backend.service
+
+# 重新加载 systemd
+sudo systemctl daemon-reload
+
+# 启用并启动服务
+sudo systemctl enable jiecool-backend
+sudo systemctl start jiecool-backend
+```
+
+#### 5. 常见的 NAMESPACE 错误解决
+`status=226/NAMESPACE` 错误通常由以下原因引起：
+
+**问题 1: 路径不存在或权限不足**
+```bash
+# 确认所有路径都存在
+sudo mkdir -p /app/jiecool/JieCool/logs
+sudo mkdir -p /app/jiecool/JieCool/uploads
+
+# 设置正确的权限
+sudo chown -R root:root /app/jiecool/JieCool/
+sudo chmod +x /app/jiecool/JieCool/server/main
+```
+
+**问题 2: 安全配置过于严格**
+如果仍有问题，可以创建一个简化的服务配置：
+
+```ini
+[Unit]
+Description=JieCool Backend Service
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/app/jiecool/JieCool/server
+ExecStart=/app/jiecool/JieCool/server/main
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**问题 3: 环境变量问题**
+```bash
+# 检查必要的环境变量
+printenv | grep -E "(GO|GF|DATABASE)"
+
+# 在服务文件中添加环境变量
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=GF_GCFG_FILE=config.yaml
+```
 
 ## 更新部署
 
@@ -532,13 +903,14 @@ vim config.env
 ```bash
 # 1. 备份当前版本
 sudo systemctl stop jiecool-backend
+pm2 stop jiecool-frontend
 cp -r /path/to/JieCool /path/to/JieCool.backup.$(date +%Y%m%d_%H%M%S)
 
 # 2. 更新代码
 cd /path/to/JieCool
 git pull origin main
 
-# 3. 重新编译 (如果需要)
+# 3. 重新编译后端 (如果需要)
 cd server
 go mod tidy
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o main .
@@ -550,18 +922,39 @@ npm run build
 
 # 5. 重启服务
 sudo systemctl start jiecool-backend
+pm2 start jiecool-frontend
+
+# 6. 验证服务状态
 sudo systemctl status jiecool-backend
+pm2 status jiecool-frontend
 ```
 
 ### 数据库迁移
 ```bash
 # 如果有数据库迁移脚本
 cd /path/to/JieCool/server
-./main migrate
+./main-prod migrate
 
 # 或手动执行 SQL
 sudo -u postgres psql jiecool < migration.sql
 ```
+
+## 环境配置说明
+
+### 前端环境配置
+前端使用 Next.js 标准环境配置：
+
+- `.env.development` - 开发环境
+- `.env.production` - 生产环境
+- `.env.local` - 本地覆盖配置
+
+### 后端配置说明
+后端使用 GoFrame 的单配置文件 `server/manifest/config/config.yaml`，部署时需要手动修改以下关键配置：
+
+1. **数据库连接**：修改 `database.default.link` 字段
+2. **服务端口**：修改 `server.address` 字段
+3. **日志级别**：修改 `logger.level` 字段
+4. **Swagger认证**：修改 `swagger.auth` 相关字段
 
 ## 安全建议
 

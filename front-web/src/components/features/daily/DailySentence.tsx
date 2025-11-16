@@ -290,7 +290,7 @@ const DailySentence: React.FC = () => {
             className={styles.enterButton}
             onClick={() => {
               // 跳转到测试页面
-              router.push('/test');
+              router.push('/blog');
             }}
           >
             进入

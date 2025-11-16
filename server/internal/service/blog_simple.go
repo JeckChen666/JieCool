@@ -6,8 +6,10 @@ import (
 	"strings"
 
 	"github.com/gogf/gf/v2/errors/gerror"
+	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/gogf/gf/v2/util/gconv"
+	"github.com/google/uuid"
 
 	"server/internal/dao"
 	"server/internal/model/entity"
@@ -39,12 +41,19 @@ func (s *BlogSimpleService) CreateArticle(ctx context.Context, req map[string]in
 	}
 
 	// 检查slug是否已存在
-	exist, err := dao.BlogArticles.Ctx(ctx).Where("slug", slug).Count()
+	existURL, err := dao.BlogArticles.Ctx(ctx).Where("slug", slug).Count()
 	if err != nil {
 		return nil, gerror.Wrap(err, "检查URL标识失败")
 	}
-	if exist > 0 {
+	if existURL > 0 {
 		return nil, gerror.New("URL标识已存在，请更换")
+	}
+
+	// 验证分类是否存在
+	categoryId := gconv.Int64(req["categoryId"])
+	existCategory, err := dao.BlogCategories.Ctx(ctx).Where("id", categoryId).Count()
+	if existCategory != 1 {
+		return nil, gerror.New("分类不存在")
 	}
 
 	// 计算阅读时间
@@ -73,8 +82,38 @@ func (s *BlogSimpleService) CreateArticle(ctx context.Context, req map[string]in
 		publishAt = gtime.Now()
 	}
 
-	// 创建文章
+	// 构建插入数据，明确排除id字段，让数据库自动生成
+	articleId := uuid.New().String()
+	insertData := map[string]interface{}{
+		"article_id":   articleId,
+		"category_id":  categoryId,
+		"title":        title,
+		"slug":         slug,
+		"summary":      summary,
+		"content":      content,
+		"html_content": htmlContent,
+		"author_id":    1,
+		"status":       status,
+		"is_draft":     status != "published",
+		"read_time":    readTime,
+		"publish_at":   publishAt,
+		"created_at":   gtime.Now(),
+		"updated_at":   gtime.Now(),
+	}
+
+	// 插入数据并获取结果
+	_, err = dao.BlogArticles.Ctx(ctx).Data(insertData).Insert()
+	if err != nil {
+		return nil, gerror.Wrap(err, "创建文章失败")
+	}
+
+	one, err := dao.BlogArticles.Ctx(ctx).Where("article_id", articleId).One()
+
+	// 构建返回的文章对象
 	article := &entity.BlogArticles{
+		Id:          gconv.Int64(one["id"]),
+		ArticleId:   insertData["article_id"].(string),
+		CategoryId:  categoryId,
 		Title:       title,
 		Slug:        slug,
 		Summary:     summary,
@@ -89,17 +128,6 @@ func (s *BlogSimpleService) CreateArticle(ctx context.Context, req map[string]in
 		UpdatedAt:   gtime.Now(),
 	}
 
-	result, err := dao.BlogArticles.Ctx(ctx).Data(article).Insert()
-	if err != nil {
-		return nil, gerror.Wrap(err, "创建文章失败")
-	}
-
-	id, err := result.LastInsertId()
-	if err != nil {
-		return nil, gerror.Wrap(err, "获取文章ID失败")
-	}
-
-	article.Id = id
 	return article, nil
 }
 
@@ -154,6 +182,127 @@ func (s *BlogSimpleService) GetArticle(ctx context.Context, id int64) (*entity.B
 	}
 
 	return article, nil
+}
+
+// UpdateArticle 更新博客文章
+func (s *BlogSimpleService) UpdateArticle(ctx context.Context, req map[string]interface{}) error {
+	id := gconv.Int64(req["id"])
+	title := gconv.String(req["title"])
+	content := gconv.String(req["content"])
+	slug := gconv.String(req["slug"])
+
+	// 验证必填字段
+	if id <= 0 {
+		return gerror.New("文章ID不能为空")
+	}
+	if title == "" {
+		return gerror.New("文章标题不能为空")
+	}
+	if content == "" {
+		return gerror.New("文章内容不能为空")
+	}
+	if slug == "" {
+		return gerror.New("文章URL标识不能为空")
+	}
+
+	// 检查文章是否存在
+	existArticle, err := dao.BlogArticles.Ctx(ctx).Where("id", id).Where("deleted_at IS NULL").One()
+	if err != nil {
+		return gerror.Wrap(err, "检查文章失败")
+	}
+	if existArticle.IsEmpty() {
+		return gerror.New("文章不存在")
+	}
+
+	// 检查slug是否与其他文章冲突
+	existSlug, err := dao.BlogArticles.Ctx(ctx).
+		Where("slug", slug).
+		Where("id != ?", id).
+		Where("deleted_at IS NULL").
+		Count()
+	if err != nil {
+		return gerror.Wrap(err, "检查URL标识失败")
+	}
+	if existSlug > 0 {
+		return gerror.New("URL标识已存在，请更换")
+	}
+
+	// 验证分类是否存在
+	categoryId := gconv.Int64(req["categoryId"])
+	if categoryId > 0 {
+		existCategory, err := dao.BlogCategories.Ctx(ctx).Where("id", categoryId).Count()
+		if err != nil {
+			return gerror.Wrap(err, "检查分类失败")
+		}
+		if existCategory != 1 {
+			return gerror.New("分类不存在")
+		}
+	}
+
+	// 计算阅读时间
+	readTime := len(content) / 200
+	if readTime < 1 {
+		readTime = 1
+	}
+
+	// 处理内容
+	htmlContent := s.processMarkdown(content)
+
+	// 生成摘要
+	summary := gconv.String(req["summary"])
+	if summary == "" {
+		summary = s.generateSummary(content, 200)
+	}
+
+	// 设置发布时间
+	status := gconv.String(req["status"])
+	if status == "" {
+		status = "draft"
+	}
+
+	var publishAt *gtime.Time
+	if status == "published" {
+		publishAt = gtime.Now()
+	}
+
+	// 构建更新数据
+	updateData := map[string]interface{}{
+		"title":        title,
+		"slug":         slug,
+		"summary":      summary,
+		"content":      content,
+		"html_content": htmlContent,
+		"category_id":  categoryId,
+		"status":       status,
+		"is_draft":     status != "published",
+		"read_time":    readTime,
+		"publish_at":   publishAt,
+		"updated_at":   gtime.Now(),
+	}
+
+	// 可选字段
+	if isTop, ok := req["isTop"].(bool); ok {
+		updateData["is_top"] = isTop
+	}
+	if isPrivate, ok := req["isPrivate"].(bool); ok {
+		updateData["is_private"] = isPrivate
+	}
+	if featuredImage := gconv.String(req["featuredImage"]); featuredImage != "" {
+		updateData["featured_image"] = featuredImage
+	}
+
+	// 执行更新
+	_, err = dao.BlogArticles.Ctx(ctx).
+		Where("id", id).
+		Data(updateData).
+		Update()
+	if err != nil {
+		return gerror.Wrap(err, "更新文章失败")
+	}
+
+	g.Log().Info(ctx, "BlogSimpleService.UpdateArticle", "id", id, "title", title)
+
+	return nil
 }
 
 // ListCategories 获取分类列表

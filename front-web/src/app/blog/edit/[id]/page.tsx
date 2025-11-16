@@ -32,8 +32,19 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
   // 获取分类列表
   const fetchCategories = async () => {
     try {
-      const response = await blogApi.getCategories()
-      setCategories(response.data?.list || [])
+        console.log('开始获取分类...')
+        const response = await blogApi.getCategories()
+        const categoriesList = response?.list || []
+        console.log('获取到的分类数据:', categoriesList)
+        console.log('分类数据长度:', categoriesList.length)
+        console.log('设置分类状态...')
+        setCategories(categoriesList)
+        console.log('分类状态设置完成')
+
+        // 强制更新组件状态
+        setTimeout(() => {
+            console.log('延迟检查 - 分类数据:', categoriesList)
+        }, 100)
     } catch (error) {
       console.error('获取分类失败:', error)
     }
@@ -70,6 +81,9 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
     const newFormData = { ...formData, [field]: value }
     setFormData(newFormData)
 
+    // 同步更新表单字段值
+    form.setFieldValue(field, value)
+
     // 自动生成slug
     if (field === 'title' && !formData.slug) {
       const slug = value.toLowerCase()
@@ -84,16 +98,20 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
   // 更新文章
   const handleUpdate = async (isDraft = false) => {
     try {
-      const values = await form.validate()
+      // 验证表单必填字段
+      await form.validate()
       setLoading(true)
+
+      // 获取表单值
+      const formValues = form.getFieldsValue()
 
       const articleData: UpdateArticleRequest = {
         id: Number(params.id),
-        title: values.title,
-        slug: values.slug || values.title.toLowerCase().replace(/\s+/g, '-'),
-        summary: values.summary,
-        content: values.content,
-        categoryId: values.categoryId || 1,
+        title: formValues.title,
+        slug: formValues.slug || formValues.title.toLowerCase().replace(/\s+/g, '-'),
+        summary: formValues.summary,
+        content: formData.content, // 使用 formData 中的 content 值
+        categoryId: formValues.categoryId || 1,
         tags: [],
         status: isDraft ? 'draft' : 'published',
         isDraft,
@@ -101,7 +119,10 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
         isPrivate: article?.isPrivate || false
       }
 
-      await blogApi.updateArticle(Number(params.id), articleData)
+      console.log('提交的文章数据:', articleData)
+
+      await blogApi.updateArticle(articleData)
+
       Message.success(isDraft ? '草稿保存成功' : '文章更新成功')
 
       if (!isDraft) {
@@ -309,46 +330,35 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
                   />
                 </Form.Item>
 
-                <Form.Item
-                  label={
-                    <span style={{ fontSize: '16px', fontWeight: '500', color: '#333' }}>
+                  <Form.Item
+                      label={
+                          <span style={{ fontSize: '16px', fontWeight: '500', color: '#333' }}>
                       文章分类
                     </span>
-                  }
-                  field="categoryId"
-                  rules={[{ required: true, message: '请选择文章分类' }]}
-                >
-                  <Select
-                    placeholder="选择一个分类..."
-                    style={{
-                      borderRadius: '8px',
-                      border: '2px solid #e5e7eb'
-                    }}
-                    allowClear
+                      }
+                      field="categoryId"
+                      rules={[{ required: true, message: '请选择文章分类' }]}
                   >
-                    {categories.map(category => (
-                      <Select.Option key={category.id} value={category.id}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{
-                            fontSize: '12px',
-                            background: '#f0f9ff',
-                            color: '#0369a1',
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            fontWeight: '500'
-                          }}>
-                            {category.name}
-                          </span>
-                          {category.description && (
-                            <span style={{ color: '#666', fontSize: '12px' }}>
-                              {category.description}
-                            </span>
-                          )}
-                        </div>
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
+                      <Select
+                          placeholder="选择一个分类..."
+                          style={{
+                              borderRadius: '8px',
+                              border: '2px solid #e5e7eb'
+                          }}
+                          allowClear
+                          loading={categories.length === 0}
+                          options={categories && categories.length > 0 ? categories.map(category => ({
+                              label: category.name,
+                              value: category.id
+                          })) : []}
+                          notFoundContent={categories.length === 0 ? "加载中..." : "暂无分类"}
+                      />
+                  </Form.Item>
+
+                  {/* 隐藏的 content 字段，用于表单验证 */}
+                  <Form.Item field="content" style={{ display: 'none' }}>
+                      <Input />
+                  </Form.Item>
               </Form>
             </Card>
 

@@ -32,7 +32,15 @@
       "Bash(tasklist:*)",
       "Bash(timeout:*)",
       "mcp__Puppeteer__puppeteer_navigate",
-      "mcp__Puppeteer__puppeteer_screenshot"
+      "mcp__Puppeteer__puppeteer_screenshot",
+      "mcp__Puppeteer__puppeteer_fill",
+      "mcp__Puppeteer__puppeteer_click",
+      "mcp__Puppeteer__puppeteer_evaluate",
+      "mcp__chrome-devtools__list_network_requests",
+      "mcp__chrome-devtools__get_network_request",
+      "Bash(wmic:*)",
+      "Bash(go mod tidy:*)",
+      "Bash(go get:*)"
     ],
     "deny": [],
     "ask": []

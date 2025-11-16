@@ -32,7 +32,7 @@ type CreateReq struct {
 	g.Meta        `path:"/blog/articles" tags:"Blog" method:"post" summary:"Create a blog article"`
 	Title         string     `json:"title" v:"required|length:3,255"`                         // 文章标题
 	Slug          string     `json:"slug" v:"required|length:3,255"`                          // URL友好标识
-	Summary       string     `json:"summary" v:"max_length:500"`                              // 文章摘要
+	Summary       string     `json:"summary" v:"length:0,500"`                                // 文章摘要
 	Content       string     `json:"content" v:"required"`                                    // Markdown内容
 	CategoryId    int64      `json:"categoryId" v:"min:1"`                                    // 分类ID
 	Tags          []TagInput `json:"tags"`                                                    // 标签列表
@@ -56,7 +56,7 @@ type UpdateReq struct {
 	Id            int64      `json:"id" v:"required|min:1"`
 	Title         string     `json:"title" v:"required|length:3,255"`
 	Slug          string     `json:"slug" v:"required|length:3,255"`
-	Summary       string     `json:"summary" v:"max_length:500"`
+	Summary       string     `json:"summary" v:"length:0,500"`
 	Content       string     `json:"content" v:"required"`
 	CategoryId    int64      `json:"categoryId" v:"min:1"`
 	Tags          []TagInput `json:"tags"`
@@ -197,6 +197,7 @@ type ListCategoriesReq struct {
 
 type CategoryItem struct {
 	Id           int64  `json:"id"`
+	CategoryId   string `json:"categoryId"`
 	Name         string `json:"name"`
 	Slug         string `json:"slug"`
 	ParentId     *int64 `json:"parentId"`

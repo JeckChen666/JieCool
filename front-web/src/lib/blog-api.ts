@@ -19,8 +19,8 @@ export const blogApi = {
     alova.Post<BlogArticle>('/blog/articles', data),
 
   // 更新文章
-  updateArticle: (id: number, data: UpdateArticleRequest) =>
-    alova.Put<BlogArticle>(`/blog/articles?id=${id}`, data),
+  updateArticle: (data: UpdateArticleRequest) =>
+    alova.Put<BlogArticle>(`/blog/articles`, data),
 
   // 获取文章列表
   getArticles: (params: ArticleListParams) =>

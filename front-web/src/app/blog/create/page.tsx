@@ -53,6 +53,9 @@ export default function CreateBlogPage() {
     const newFormData = { ...formData, [field]: value }
     setFormData(newFormData)
 
+    // 同时更新表单字段值，确保 form.validate() 能获取到正确的值
+    form.setFieldValue(field, value)
+
     // 自动生成slug
     if (field === 'title' && !formData.slug) {
       const slug = value.toLowerCase()
@@ -132,6 +135,15 @@ export default function CreateBlogPage() {
   useEffect(() => {
     console.log('useEffect触发，开始获取分类')
     fetchCategories()
+
+    // 初始化表单字段值
+    form.setFieldsValue({
+      title: '',
+      slug: '',
+      summary: '',
+      content: '',
+      categoryId: undefined
+    })
   }, [])
 
   return (
@@ -283,20 +295,25 @@ export default function CreateBlogPage() {
                   field="categoryId"
                   rules={[{ required: true, message: '请选择文章分类' }]}
                 >
-                  <Select
-                    placeholder="选择一个分类..."
-                    style={{
-                      borderRadius: '8px',
-                      border: '2px solid #e5e7eb'
-                    }}
-                    allowClear
-                    loading={categories.length === 0}
-                    options={categories && categories.length > 0 ? categories.map(category => ({
-                      label: category.name,
-                      value: category.id
-                    })) : []}
-                    notFoundContent={categories.length === 0 ? "加载中..." : "暂无分类"}
-                  />
+                    <Select
+                        placeholder="选择一个分类..."
+                        style={{
+                            borderRadius: '8px',
+                            border: '2px solid #e5e7eb'
+                        }}
+                        allowClear
+                        loading={categories.length === 0}
+                        options={categories && categories.length > 0 ? categories.map(category => ({
+                            label: category.name,
+                            value: category.id
+                        })) : []}
+                        notFoundContent={categories.length === 0 ? "加载中..." : "暂无分类"}
+                    />
+                </Form.Item>
+
+                {/* 隐藏的 content 字段，用于表单验证 */}
+                <Form.Item field="content" style={{ display: 'none' }}>
+                  <Input />
                 </Form.Item>
               </Form>
             </Card>

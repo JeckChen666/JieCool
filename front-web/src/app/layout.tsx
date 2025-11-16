@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+// 临时注释掉 Google Fonts，避免网络问题导致构建失败
+// import { Inter } from "next/font/google";
 import "./globals.css";
 // 引入 Arco Design 全局样式，确保组件样式正确呈现
 import "@arco-design/web-react/dist/css/arco.css";
@@ -7,10 +8,15 @@ import "@arco-design/web-react/dist/css/arco.css";
 import ClientProvider from "@/components/layout/ClientProvider";
 import Navbar from "@/components/layout/Navbar";
 
-const inter = Inter({
+// 临时使用系统字体替代 Google Fonts
+const inter = {
   variable: "--font-inter",
-  subsets: ["latin"],
-});
+  style: [
+    {
+      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    }
+  ]
+};
 
 export const metadata: Metadata = {
   title: "JieCool",

@@ -76,6 +76,9 @@ func (c *ControllerV1) getArticleTags(ctx context.Context, articleId int64) ([]*
 	var tags []*entity.BlogTags
 
 	err := dao.BlogTags.Ctx(ctx).
+		Fields("blog_tags.id", "blog_tags.tag_id", "blog_tags.name", "blog_tags.slug",
+			"blog_tags.description", "blog_tags.color", "blog_tags.article_count",
+			"blog_tags.is_active", "blog_tags.created_at", "blog_tags.updated_at").
 		InnerJoin("blog_article_tags", "blog_tags.id = blog_article_tags.tag_id").
 		Where("blog_article_tags.article_id", articleId).
 		Where("blog_tags.is_active", true).

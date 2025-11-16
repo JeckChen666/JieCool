@@ -25,6 +25,7 @@ func (c *ControllerV1) ListCategories(ctx context.Context, req *v1.ListCategorie
 
 		item := v1.CategoryItem{
 			Id:           category.Id,
+			CategoryId:   category.CategoryId,
 			Name:         category.Name,
 			Slug:         category.Slug,
 			ParentId:     parentId,

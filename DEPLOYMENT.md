@@ -251,7 +251,10 @@ cd front-web
 pm2 start npm --name "jiecool-frontend" -- start
 
 # 或者使用更详细的配置
-pm2 start npm --name "jiecool-frontend" -- start -- --port 3000
+pm2 start npm --name "jiecool-frontend" -- start -- --port 53000
+
+# 或者使用环境变量启动
+pm2 start npm --name "jiecool-frontend" -- start --env PORT=53000
 ```
 
 ##### PM2 常用管理命令
@@ -303,7 +306,8 @@ module.exports = {
     max_memory_restart: '1G', // 内存超过 1GB 时重启
     env: {
       NODE_ENV: 'production',
-      PORT: 3000
+      PORT: 53000,
+      NEXT_PUBLIC_API_BASE: 'http://localhost:58080'
     },
     error_file: './logs/err.log',
     out_file: './logs/out.log',
@@ -311,11 +315,13 @@ module.exports = {
     time: true,             // 日志包含时间戳
     env_development: {
       NODE_ENV: 'development',
-      PORT: 3000
+      PORT: 3000,
+      NEXT_PUBLIC_API_BASE: 'http://localhost:8080'
     },
     env_production: {
       NODE_ENV: 'production',
-      PORT: 3000
+      PORT: 53000,
+      NEXT_PUBLIC_API_BASE: 'http://localhost:58080'
     }
   }]
 };
@@ -435,7 +441,7 @@ server {
 
     # Next.js SSR 前端代理
     location / {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:53000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -453,7 +459,7 @@ server {
 
     # API 代理到后端服务
     location /api/ {
-        proxy_pass http://127.0.0.1:8080/;  # 注意端口与后端配置一致
+        proxy_pass http://127.0.0.1:58080/;  # 注意端口与后端配置一致
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -474,7 +480,7 @@ server {
 
     # Next.js API 和特殊路由
     location ~ ^/(api|_next|__webpack|favicon|manifest|robots\.txt|sitemap\.xml) {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:53000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -582,19 +588,25 @@ pm2 status jiecool-frontend
 sudo systemctl status nginx
 
 # 检查端口监听
-sudo netstat -tlnp | grep -E ":80|:3000|:8080|:5432"
+sudo netstat -tlnp | grep -E ":80|:53000|:58080|:5432"
 ```
 
 #### 测试服务
 ```bash
 # 测试后端健康检查
-curl http://localhost:8080/api/health
+curl http://localhost:58080/api/health
 
 # 测试前端访问
 curl -I http://localhost
 
 # 测试前端页面渲染
 curl http://localhost | head -20
+
+# 测试前端直接访问（绕过 Nginx）
+curl -I http://localhost:53000
+
+# 测试后端 API 直接访问
+curl http://localhost:58080/api/health
 ```
 
 #### 查看日志
@@ -733,13 +745,13 @@ pm2 status jiecool-frontend
 pm2 show jiecool-frontend        # 查看详细信息
 
 # 检查前端是否正常运行
-curl http://localhost:3000
+curl http://localhost:53000
 
 # 检查 Next.js 构建文件
 ls -la /path/to/JieCool/front-web/.next/
 
 # 检查端口占用
-sudo netstat -tlnp | grep 3000
+sudo netstat -tlnp | grep 53000
 
 # 检查 Nginx 错误日志
 sudo tail -f /var/log/nginx/error.log
@@ -773,7 +785,7 @@ sudo -u postgres psql -c "\du"
 #### 4. 端口冲突
 ```bash
 # 查看端口占用
-sudo netstat -tlnp | grep -E ":3000|:8080"
+sudo netstat -tlnp | grep -E ":53000|:58080"
 
 # 杀死占用端口的进程
 sudo kill -9 <PID>
@@ -897,7 +909,143 @@ Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 Environment=GF_GCFG_FILE=config.yaml
 ```
 
-## 更新部署
+## 自动化部署脚本
+
+### deploy.sh 脚本使用
+
+项目提供了完整的自动化部署脚本 `deploy.sh`，可以自动完成代码更新、编译和服务重启等操作。
+
+#### 脚本功能
+- ✅ **环境检查**：验证 Go、Node.js、PM2 等依赖
+- ✅ **代码检测**：自动检测代码变更，无变更时跳过部署
+- ✅ **备份管理**：自动备份当前版本，保留最近5个版本
+- ✅ **服务管理**：智能停止/启动 systemd 和 PM2 服务
+- ✅ **自动编译**：交叉编译后端，构建前端生产版本
+- ✅ **健康检查**：验证服务连通性和端口监听状态
+- ✅ **日志记录**：完整的部署日志，彩色输出
+- ✅ **错误处理**：完善的错误处理和回滚机制
+
+#### 使用方法
+
+```bash
+# 标准部署（包含 Git 代码拉取）
+./deploy.sh
+
+# 跳过代码更新，仅重新编译和重启（用于本地测试）
+./deploy.sh --no-pull
+
+# 显示帮助信息
+./deploy.sh --help
+# 或
+./deploy.sh -h
+```
+
+#### 脚本配置
+
+脚本默认配置：
+- **项目目录**：`/app/jiecool/JieCool`
+- **后端端口**：58080
+- **前端端口**：53000
+- **备份保留**：最近5个版本
+- **日志文件**：`/app/jiecool/JieCool/deploy.log`
+- **备份目录**：`/app/jiecool/JieCool/backups`
+
+如需修改配置，请编辑脚本开头的配置变量：
+```bash
+# 配置变量
+PROJECT_DIR="/app/jiecool/JieCool"        # 项目根目录
+LOG_FILE="$PROJECT_DIR/deploy.log"         # 部署日志文件
+BACKUP_DIR="$PROJECT_DIR/backups"          # 备份目录
+```
+
+#### 部署流程
+
+1. **环境检查**：验证 Go、Node.js、PM2、项目目录等
+2. **代码更新**：执行 `git pull origin main`（可跳过）
+3. **版本备份**：备份后端二进制文件和前端构建文件
+4. **服务停止**：停止 jiecool-backend 和 jiecool-frontend 服务
+5. **后端编译**：下载依赖并交叉编译为 Linux AMD64
+6. **前端构建**：清理缓存并构建生产版本
+7. **服务启动**：启动后端和前端服务
+8. **健康检查**：测试端口监听和 API 连通性
+9. **清理操作**：删除过期备份文件
+10. **结果展示**：显示部署摘要和状态信息
+
+#### 日志和监控
+
+```bash
+# 查看部署日志
+tail -f /app/jiecool/JieCool/deploy.log
+
+# 查看最近的部署历史
+grep -E "开始|完成|失败" /app/jiecool/JieCool/deploy.log | tail -10
+
+# 查看备份文件
+ls -la /app/jiecool/JieCool/backups/
+
+# 查看服务状态
+sudo systemctl status jiecool-backend
+pm2 status jiecool-frontend
+```
+
+#### 错误排查
+
+如果部署失败，脚本会自动停止并显示错误信息：
+
+1. **查看详细日志**：
+   ```bash
+   # 查看部署日志
+   tail -50 /app/jiecool/JieCool/deploy.log
+
+   # 查看后端服务日志
+   sudo journalctl -u jiecool-backend -n 50
+
+   # 查看前端服务日志
+   pm2 logs jiecool-frontend --lines 50
+   ```
+
+2. **手动恢复**：
+   ```bash
+   # 恢复最近的后端备份
+   cp /app/jiecool/JieCool/backups/main_backup_* /app/jiecool/JieCool/server/main
+
+   # 恢复最近的前端备份
+   rm -rf /app/jiecool/JieCool/front-web/.next
+   cp -r /app/jiecool/JieCool/backups/frontend_backup_* /app/jiecool/JieCool/front-web/.next
+
+   # 重启服务
+   sudo systemctl restart jiecool-backend
+   pm2 restart jiecool-frontend
+   ```
+
+3. **常见问题解决**：
+   - **权限问题**：确保脚本有执行权限 `chmod +x deploy.sh`
+   - **Git 冲突**：手动解决代码冲突后重新运行
+   - **编译失败**：检查 Go 和 Node.js 环境配置
+   - **服务启动失败**：检查 systemd 和 PM2 配置
+
+#### 高级用法
+
+**定时自动部署**：
+```bash
+# 添加到 crontab，每小时检查一次更新
+crontab -e
+# 添加行：
+0 * * * * cd /app/jiecool/JieCool && ./deploy.sh >> /var/log/jiecool-deploy.log 2>&1
+```
+
+**指定分支部署**：
+```bash
+# 修改脚本中的 git pull 命令
+git pull origin dev  # 使用 dev 分支
+```
+
+**自定义部署前/后脚本**：
+可以在脚本中添加自定义的部署前检查和部署后验证逻辑。
+
+## 手动更新部署
+
+如果需要手动更新而不使用自动脚本，可以按以下步骤操作：
 
 ### 更新应用代码
 ```bash

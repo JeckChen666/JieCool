@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "start:prod": "NODE_ENV=production next start"
+    "start:prod": "cross-env NODE_ENV=production next start"
   },
   "dependencies": {
     "@arco-design/web-react": "^2.66.5",
@@ -27,6 +27,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.21",
+    "cross-env": "^10.1.0",
     "eslint": "^8",
     "eslint-config-next": "14.2.15",
     "tailwindcss": "^3.4.18",
